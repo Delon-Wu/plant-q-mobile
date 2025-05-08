@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "fit-synapse-mobile",
-    "slug": "fit-synapse-mobile",
+    "name": "plant-q",
+    "slug": "plant-q-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "fitsynapsemobile",
+    "scheme": "plantqmobile",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
