@@ -1,5 +1,5 @@
 {
-  "name": "fit-synapse-mobile",
+  "name": "plant-q-mobile",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
@@ -7,7 +7,7 @@
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
+    "web": "$env:NODE_ENV = 'development' ; npx expo start --web",
     "lint": "expo lint"
   },
   "dependencies": {
@@ -15,6 +15,7 @@
     "@react-navigation/bottom-tabs": "^7.3.10",
     "@react-navigation/elements": "^2.3.8",
     "@react-navigation/native": "^7.1.6",
+    "axios": "^1.9.0",
     "expo": "~53.0.5",
     "expo-blur": "~14.1.4",
     "expo-constants": "~17.1.5",
@@ -32,18 +33,20 @@
     "react-dom": "19.0.0",
     "react-native": "0.79.2",
     "react-native-gesture-handler": "~2.24.0",
+    "react-native-paper": "^5.14.0",
     "react-native-reanimated": "~3.17.4",
-    "react-native-safe-area-context": "5.4.0",
+    "react-native-safe-area-context": "^5.4.0",
     "react-native-screens": "~4.10.0",
     "react-native-web": "~0.20.0",
     "react-native-webview": "13.13.5"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/axios": "^0.9.36",
     "@types/react": "~19.0.10",
-    "typescript": "~5.8.3",
     "eslint": "^9.25.0",
-    "eslint-config-expo": "~9.2.0"
+    "eslint-config-expo": "~9.2.0",
+    "typescript": "~5.8.3"
   },
   "private": true
 }

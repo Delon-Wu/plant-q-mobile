@@ -5,8 +5,11 @@ import { HelloWave } from '@/components/HelloWave';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
+import { useRouter } from 'expo-router';
+import { Button } from 'react-native-paper';
 
 export default function HomeScreen() {
+  const router = useRouter();
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -51,6 +54,11 @@ export default function HomeScreen() {
           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>
+      <ThemedView style={styles.buttonContainer}>
+        <Button mode="contained" onPress={() => router.push('/login')} style={styles.button}>
+          登录
+        </Button>
+      </ThemedView>
     </ParallaxScrollView>
   );
 }
@@ -71,5 +79,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
+  },
+  buttonContainer: {
+    gap: 10,
+    marginTop: 20,
+  },
+  button: {
+    marginVertical: 5,
   },
 });
