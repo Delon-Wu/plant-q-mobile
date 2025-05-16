@@ -1,6 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import { login } from '@/src/api/account';
+import { AccessToken, RefreshToken } from '@/src/constant/localStorageKey';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -15,7 +16,11 @@ export default function Login() {
         // console.log('Login:', email, password);
         login(email, password).then((res) => {
             console.log('login res-->', res)
-            router.push('/');
+            if (res.data.code === 200) {
+                localStorage.setItem(AccessToken, res.data.data.access);
+                localStorage.setItem(RefreshToken, res.data.data.refresh);
+                router.push('/');
+            }
         });
     };
 
