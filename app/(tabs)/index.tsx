@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { useRouter } from 'expo-router';
+import { Text } from 'react-native-paper';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -15,6 +16,9 @@ export default function HomeScreen() {
           style={styles.reactLogo}
         />
       }>
+      <View>
+        <Text>首页</Text>
+      </View>
     </ParallaxScrollView>
   );
 }
