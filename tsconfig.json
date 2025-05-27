@@ -8,7 +8,7 @@
       ]
     },
     "moduleResolution": "node",
-    "types": ["axios"]
+    "types": ["axios", "node"]
   },
   "include": [
     "**/*.ts",

@@ -3,17 +3,16 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
-import { useThemeColor } from '@/hooks/useThemeColor';
+import useTheme from '@/hooks/useTheme';
 import {
-  MD3LightTheme as DefaultTheme,
-  PaperProvider
+  PaperProvider,
 } from 'react-native-paper';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-  const colors = useThemeColor();
+  const customTheme = useTheme();
 
   if (!loaded) {
     // Async font loading only occurs in development.
@@ -21,7 +20,7 @@ export default function RootLayout() {
   }
 
   return (
-    <PaperProvider theme={{...DefaultTheme, colors: {...colors}} }>
+    <PaperProvider theme={customTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ title: '登录' }} />

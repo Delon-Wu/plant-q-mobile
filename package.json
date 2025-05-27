@@ -7,7 +7,7 @@
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "$env:NODE_ENV = 'development'; npx expo start --web",
+    "web": "$env:NODE_ENV = 'development' & npx expo start --web",
     "lint": "expo lint"
   },
   "dependencies": {
@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@types/node": "^22.15.21",
     "@types/react": "~19.0.10",
     "eslint": "^9.25.0",
     "eslint-config-expo": "~9.2.0",

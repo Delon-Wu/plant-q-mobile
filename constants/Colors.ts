@@ -53,7 +53,8 @@ export const Colors = {
     "lightest": "rgb(0, 108, 74)",
     "onLightest": "rgb(255, 255, 255)",
     "lightestContainer": "rgb(123, 250, 193)",
-    "onLightestContainer": "rgb(0, 33, 20)"
+    "onLightestContainer": "rgb(0, 33, 20)",
+    tabBackground: "rgb(255,255,255)",
   },
   dark: {
     text: '#ECEDEE',
@@ -104,6 +105,7 @@ export const Colors = {
     "lightest": "rgb(93, 221, 166)",
     "onLightest": "rgb(0, 56, 37)",
     "lightestContainer": "rgb(0, 82, 55)",
-    "onLightestContainer": "rgb(123, 250, 193)"
+    "onLightestContainer": "rgb(123, 250, 193)",
+    tabBackground: "rgb(0, 0, 0)",
   },
 };

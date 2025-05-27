@@ -16,9 +16,9 @@ export default function Login() {
         // console.log('Login:', email, password);
         login(email, password).then((res) => {
             console.log('login res-->', res)
-            if (res.data.code === 200) {
-                localStorage.setItem(AccessToken, res.data.data.access);
-                localStorage.setItem(RefreshToken, res.data.data.refresh);
+            if (res.code === 200) {
+                localStorage.setItem(AccessToken, res.data.access);
+                localStorage.setItem(RefreshToken, res.data.refresh);
                 router.push('/');
             }
         });
