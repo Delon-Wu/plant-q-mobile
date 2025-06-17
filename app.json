@@ -1,6 +1,11 @@
 {
   "expo": {
     "name": "plant-q",
+    "extra": {
+      "eas": {
+        "projectId": "0e3b4e14-1dd7-4573-b5f1-df9cbe55d61f"
+      }
+    },
     "slug": "plant-q-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +21,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.delon2025.plantqmobile"
     },
     "web": {
       "bundler": "metro",

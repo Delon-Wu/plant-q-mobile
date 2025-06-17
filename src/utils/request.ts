@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { router } from 'expo-router';
 import { AccessToken } from '../constant/localStorageKey';
 
@@ -61,15 +61,4 @@ apiClient.interceptors.response.use(
   }
 );
 
-// 通用请求函数，支持泛型
-export default <T = any>(config: AxiosRequestConfig): Promise<AxiosResponse<ApiResponse<T>, any>> => {
-  return apiClient.request<ApiResponse<T>>(config).then(res => res.data);
-};
-
-// get请求函数，支持泛型
-export const get = <T>(url: string, params?: any) => 
-  apiClient.get<ApiResponse<T>>(url, params).then(res => res.data) as Promise<ApiResponse<T>>;
-
-// post请求函数，支持泛型
-export const post = <T>(url: string, params?: any) =>
-  apiClient.post<ApiResponse<T>>(url, params).then(res => res.data) as Promise<ApiResponse<T>>;
+export default apiClient;

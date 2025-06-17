@@ -1,92 +1,130 @@
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { login } from '@/src/api/account';
-import { AccessToken, RefreshToken } from '@/src/constant/localStorageKey';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
-import { Button, TextInput } from 'react-native-paper';
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { getUserInfo, login } from "@/src/api/account";
+import { AccessToken, RefreshToken } from "@/src/constant/localStorageKey";
+import { setUserInfo } from "@/src/store/userSlice";
+import { router } from "expo-router";
+import React, { useRef, useState } from "react";
+import { StyleSheet } from "react-native";
+import { Button, TextInput } from "react-native-paper";
+import { useDispatch } from "react-redux";
 
 export default function Login() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [hostTapCount, setHostTapCount] = useState(0);
+  const dispatch = useDispatch();
+  const lastTapTime = useRef<number>(0);
 
-    const handleLogin = () => {
-        // TODO: Implement login functionality
-        // console.log('Login:', email, password);
-        login(email, password).then((res) => {
-            console.log('login res-->', res)
-            if (res.code === 200) {
-                localStorage.setItem(AccessToken, res.data.access);
-                localStorage.setItem(RefreshToken, res.data.refresh);
-                router.push('/');
-            }
+  const handleLogin = () => {
+    // TODO: Implement login functionality
+    // console.log('Login:', email, password);
+    login(email, password)
+      .then((res) => {
+        if (res.data.code === 200) {
+          localStorage.setItem(AccessToken, res.data.data.access);
+          localStorage.setItem(RefreshToken, res.data.data.refresh);
+          router.push("/");
+          return Promise.resolve();
+        }
+        return Promise.reject(new Error(res.data.message || "登录失败"));
+      })
+      .then((data) => {
+        getUserInfo().then(({ data }) => {
+          dispatch(
+            setUserInfo({
+              name: data.username,
+              email: data.email,
+              phone: data.phone,
+            })
+          ); // 同步用户名到全局状态
+          console.log("data-->", data);
         });
-    };
+      });
+  };
 
-    const handleRegister = () => {
-        router.push('/register');
-    };
+  const handleRegister = () => {
+    router.push("/register");
+  };
 
-    return (
-        <ThemedView style={styles.container}>
-            <ThemedText type="title" style={styles.title}>登录</ThemedText>
-            
-            <TextInput
-                label="邮箱"
-                value={email}
-                onChangeText={setEmail}
-                style={styles.input}
-                mode="outlined"
-            />
-            
-            <TextInput
-                label="密码"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                style={styles.input}
-                mode="outlined"
-            />
+  const handleHostPress = () => {
+    const now = Date.now();
+    if (now - lastTapTime.current > 1000) {
+      setHostTapCount(1);
+      lastTapTime.current = now;
+    } else {
+      const nextCount = hostTapCount + 1;
+      setHostTapCount(nextCount);
+      lastTapTime.current = now;
+      if (nextCount >= 8) {
+        setHostTapCount(0);
+        lastTapTime.current = 0;
+        router.push("/host");
+      }
+    }
+  };
 
-            <View style={styles.buttonContainer}>
-                <Button
-                    mode="contained"
-                    onPress={handleLogin}
-                    style={styles.button}
-                >
-                    登录
-                </Button>
-                
-                <Button
-                    mode="outlined"
-                    onPress={handleRegister}
-                    style={styles.button}
-                >
-                    注册
-                </Button>
-            </View>
-        </ThemedView>
-    );
+  return (
+    <ThemedView style={styles.container}>
+      <ThemedText type="title" style={styles.title}>
+        登录
+      </ThemedText>
+
+      <TextInput
+        label="邮箱"
+        value={email}
+        onChangeText={setEmail}
+        style={styles.input}
+        mode="outlined"
+      />
+
+      <TextInput
+        label="密码"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+        style={styles.input}
+        mode="outlined"
+      />
+
+      <ThemedView style={styles.buttonContainer}>
+        <Button mode="contained" onPress={handleLogin} style={styles.button}>
+          登录
+        </Button>
+
+        <Button mode="outlined" onPress={handleRegister} style={styles.button}>
+          注册
+        </Button>
+
+        <Button mode="outlined" onPress={handleHostPress} style={styles.setHostButton}>
+          设置服务器地址
+        </Button>
+      </ThemedView>
+    </ThemedView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        padding: 20,
-        justifyContent: 'center',
-    },
-    title: {
-        textAlign: 'center',
-        marginBottom: 30,
-    },
-    input: {
-        marginBottom: 15,
-    },
-    buttonContainer: {
-        gap: 10,
-    },
-    button: {
-        marginTop: 10,
-    },
+  container: {
+    flex: 1,
+    padding: 20,
+    justifyContent: "center",
+  },
+  title: {
+    textAlign: "center",
+    marginBottom: 30,
+  },
+  input: {
+    marginBottom: 15,
+  },
+  buttonContainer: {
+    gap: 10,
+  },
+  button: {
+    marginTop: 10,
+  },
+  setHostButton: {
+    marginTop: 20,
+    opacity: 0,
+  },
 });

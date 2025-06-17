@@ -7,6 +7,7 @@ import useTheme from '@/hooks/useTheme';
 import {
   PaperProvider,
 } from 'react-native-paper';
+import ReduxProvider from '../src/store/ReduxProvider';
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -20,14 +21,16 @@ export default function RootLayout() {
   }
 
   return (
-    <PaperProvider theme={customTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="login" options={{ title: '登录' }} />
-        <Stack.Screen name="register" options={{ title: '注册' }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-      <StatusBar style="auto" />
-    </PaperProvider>
+    <ReduxProvider>
+      <PaperProvider theme={customTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="login" options={{ title: '登录' }} />
+          <Stack.Screen name="register" options={{ title: '注册' }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </PaperProvider>
+    </ReduxProvider>
   );
 }
