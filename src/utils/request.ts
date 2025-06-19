@@ -1,6 +1,8 @@
-import axios, { AxiosInstance, AxiosResponse } from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import { router } from 'expo-router';
 import { AccessToken } from '../constant/localStorageKey';
+import { store } from '../store';
 
 export interface ApiResponse<T> {
   code: number;
@@ -27,11 +29,16 @@ const whiteList = Object.values(WhiteList);
 // 请求拦截器（可选）
 apiClient.interceptors.request.use(
   (config: any) => {
+    const host = store.getState().settings.host;
+    if (host) {
+      config.baseURL = host + '/api';
+    }
     if (whiteList.includes(config.url ?? '')) {
       return config;
+    } else {
+      const userInfo = store.getState().user;
+      if (userInfo?.accessToken) config.headers = { ...config.headers, Authorization: `Bearer ${userInfo.accessToken}` };
     }
-    const token = localStorage.getItem(AccessToken); // 从存储中获取 token
-    if (token) config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
     return config;
   },
   (error: unknown) => Promise.reject(error)
@@ -48,12 +55,14 @@ apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
     return response;
   },
-  (error: any) => {
-    const { url } = error.config;
-    if (error.response?.status === 401) {
-      if (url === WhiteList.refresh && error.response.data.code === 40101) {
-        localStorage.removeItem(AccessToken);
-      }
+  async (error: AxiosError) => {
+    // 打印详细错误信息
+    if (error.toJSON) {
+      console.log('Axios Error JSON:', error.toJSON());
+    }
+    if (error.status === 401) {
+      // TODO: 根据返回数据里的code === 40101来判断token是否过期
+      await AsyncStorage.removeItem(AccessToken);
       router.replace('/login');
     }
     console.error('API Error:', error.response?.data);

@@ -1,8 +1,7 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { getUserInfo, login } from "@/src/api/account";
-import { AccessToken, RefreshToken } from "@/src/constant/localStorageKey";
-import { setUserInfo } from "@/src/store/userSlice";
+import { setToken, setUserInfo } from "@/src/store/userSlice";
 import { router } from "expo-router";
 import React, { useRef, useState } from "react";
 import { StyleSheet } from "react-native";
@@ -20,16 +19,19 @@ export default function Login() {
     // TODO: Implement login functionality
     // console.log('Login:', email, password);
     login(email, password)
-      .then((res) => {
-        if (res.data.code === 200) {
-          localStorage.setItem(AccessToken, res.data.data.access);
-          localStorage.setItem(RefreshToken, res.data.data.refresh);
-          router.push("/");
+      .then(({ data }) => {
+        if (data.code === 200) {
+          dispatch(
+            setToken({
+              accessToken: data.data.access,
+              refreshToken: data.data.refresh,
+            })
+          );
           return Promise.resolve();
         }
-        return Promise.reject(new Error(res.data.message || "登录失败"));
+        return Promise.reject(new Error(data.message || "登录失败"));
       })
-      .then((data) => {
+      .then(() => {
         getUserInfo().then(({ data }) => {
           dispatch(
             setUserInfo({
@@ -37,8 +39,8 @@ export default function Login() {
               email: data.email,
               phone: data.phone,
             })
-          ); // 同步用户名到全局状态
-          console.log("data-->", data);
+          );
+          router.push("/");
         });
       });
   };
@@ -49,7 +51,7 @@ export default function Login() {
 
   const handleHostPress = () => {
     const now = Date.now();
-    if (now - lastTapTime.current > 1000) {
+    if (now - lastTapTime.current > 2000) {
       setHostTapCount(1);
       lastTapTime.current = now;
     } else {
@@ -96,7 +98,11 @@ export default function Login() {
           注册
         </Button>
 
-        <Button mode="outlined" onPress={handleHostPress} style={styles.setHostButton}>
+        <Button
+          mode="outlined"
+          onPress={handleHostPress}
+          style={styles.setHostButton}
+        >
           设置服务器地址
         </Button>
       </ThemedView>
