@@ -1,12 +1,12 @@
 import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 import ThemeScrollView from "@/components/ThemeScrollView";
 import { logout } from "@/src/api/account";
-import { AccessToken, RefreshToken } from "@/src/constant/localStorageKey";
 import { RootState } from "@/src/store";
 import { clearUserInfo, selectIsLogin } from "@/src/store/userSlice";
 import { router } from "expo-router";
 import { StyleSheet } from "react-native";
-import { Button } from "react-native-paper";
+import { Avatar, Button } from "react-native-paper";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function TabTwoScreen() {
@@ -24,10 +24,13 @@ export default function TabTwoScreen() {
     <ThemeScrollView>
       {/* 用户信息 */}
       {userInfo.email ? (
-        <>
-          <ThemedText>用户名：{userInfo.name}</ThemedText>
-          <ThemedText>邮箱：{userInfo.email}</ThemedText>
-        </>
+        <ThemedView style={styles.inFoContainer}>
+          <Avatar.Text label={userInfo.name.charAt(0).toUpperCase()} size={64} />
+          <ThemedView>
+            <ThemedText>你好！{userInfo.name}</ThemedText>
+            <ThemedText style={{ fontSize: 12, color: 'gray' }}>{userInfo.email}</ThemedText>
+          </ThemedView>
+        </ThemedView>
       ) : null
     }
 
@@ -43,8 +46,10 @@ export default function TabTwoScreen() {
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  inFoContainer: {
+    display: "flex",
     flexDirection: "row",
-    gap: 8,
+    alignItems: "center",
+    gap: 16,
   },
 });
