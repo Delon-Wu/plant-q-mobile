@@ -55,6 +55,7 @@ export const Colors = {
     "lightestContainer": "rgb(123, 250, 193)",
     "onLightestContainer": "rgb(0, 33, 20)",
     tabBackground: "rgb(255,255,255)",
+    colorGroup: ["#9ac5e5", "#4fb19d", "#edce7a", "#c98c9a", "#e5c6c3"],
   },
   dark: {
     text: '#ECEDEE',
@@ -107,5 +108,6 @@ export const Colors = {
     "lightestContainer": "rgb(0, 82, 55)",
     "onLightestContainer": "rgb(123, 250, 193)",
     tabBackground: "rgb(0, 0, 0)",
+    colorGroup: ["#9ac5e5", "#4fb19d", "#edce7a", "#c98c9a", "#e5c6c3"],
   },
 };
