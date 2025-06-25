@@ -38,6 +38,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="qAssistant"
+        options={{
+          title: 'Q 助手',
+          tabBarIcon: ({ color, focused }) => <Ionicons size={28} name={focused ? "chatbox" : "chatbox-outline"} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="me"
         options={{
           title: '我',
