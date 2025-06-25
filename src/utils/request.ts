@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import { router } from 'expo-router';
-import { AccessToken } from '../constant/localStorageKey';
+import { AccessToken } from '../constants/localStorageKey';
 import { store } from '../store';
 
 export interface ApiResponse<T> {

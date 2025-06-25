@@ -1,4 +1,4 @@
-import { AccessToken, RefreshToken } from "@/src/constant/localStorageKey";
+import { AccessToken, RefreshToken } from "@/src/constants/localStorageKey";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 

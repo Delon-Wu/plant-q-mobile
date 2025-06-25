@@ -9,7 +9,7 @@ import { StyleSheet } from "react-native";
 import { Avatar, Button } from "react-native-paper";
 import { useDispatch, useSelector } from "react-redux";
 
-export default function TabTwoScreen() {
+export default function Me() {
 
   const userInfo = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();

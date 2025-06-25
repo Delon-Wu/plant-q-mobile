@@ -1,5 +1,5 @@
 import { getUserInfo } from '@/src/api/account';
-import { AccessToken, RefreshToken } from '@/src/constant/localStorageKey';
+import { AccessToken, RefreshToken } from '@/src/constants/localStorageKey';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';

@@ -3,8 +3,8 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 
-import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Colors } from '@/src/constants/Colors';
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 export function useThemeColor() {
   const theme = useColorScheme() ?? 'light';

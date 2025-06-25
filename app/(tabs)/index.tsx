@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/ThemedText";
 import ThemeScrollView from "@/components/ThemeScrollView";
 import { useThemeColor } from "@/hooks/useTheme";
+import { router } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Card, FAB, ProgressBar, Text } from "react-native-paper";
 
@@ -64,7 +65,7 @@ export default function HomeScreen() {
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => console.log('添加目标')}
+        onPress={() => router.push('/project/createProject' as any)}
       />
     </View>
   );
