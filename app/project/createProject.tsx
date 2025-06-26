@@ -1,17 +1,17 @@
+import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-interface createProjectProps {}
 
-const createProject = (props: createProjectProps) => {
+const CreateProject = () => {
   return (
     <ThemedView style={styles.container}>
-      <Text>createProject</Text>
+      <ThemedText>createProject</ThemedText>
     </ThemedView>
   );
 };
 
-export default createProject;
+export default CreateProject;
 
 const styles = StyleSheet.create({
   container: {

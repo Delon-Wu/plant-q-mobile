@@ -1,6 +1,5 @@
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import ThemeScrollView from "@/components/ThemeScrollView";
 import { logout } from "@/src/api/account";
 import { RootState } from "@/src/store";
 import { clearUserInfo, selectIsLogin } from "@/src/store/userSlice";
@@ -10,7 +9,6 @@ import { Avatar, Button } from "react-native-paper";
 import { useDispatch, useSelector } from "react-redux";
 
 export default function Me() {
-
   const userInfo = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
@@ -21,35 +19,56 @@ export default function Me() {
   };
 
   return (
-    <ThemeScrollView>
+    <ThemedView style={styles.container}>
       {/* 用户信息 */}
       {userInfo.email ? (
         <ThemedView style={styles.inFoContainer}>
-          <Avatar.Text label={userInfo.name.charAt(0).toUpperCase()} size={64} />
+          <Avatar.Text
+            label={userInfo.name.charAt(0).toUpperCase()}
+            size={64}
+          />
           <ThemedView>
             <ThemedText>你好！{userInfo.name}</ThemedText>
-            <ThemedText style={{ fontSize: 12, color: 'gray' }}>{userInfo.email}</ThemedText>
+            <ThemedText style={{ fontSize: 12, color: "gray" }}>
+              {userInfo.email}
+            </ThemedText>
           </ThemedView>
         </ThemedView>
-      ) : null
-    }
+      ) : null}
 
-      {selectIsLogin(userInfo) ? (
-        <Button mode="contained" onPress={handleLogout}>
-          退出登录
-        </Button>
-      ) : <Button mode="contained" onPress={() => router.push("/login")}>
-          登录
-        </Button>}
-    </ThemeScrollView>
+      {/* 登录/退出按钮 */}
+      <ThemedText style={{ marginBottom: 16 }}>
+        {selectIsLogin(userInfo) ? (
+          <Button style={styles.bottomButton} mode="contained" onPress={handleLogout}>
+            退出登录
+          </Button>
+        ) : (
+          <Button
+            style={styles.bottomButton}
+            mode="contained"
+            onPress={() => router.push("/login")}
+          >
+            登录
+          </Button>
+        )}
+      </ThemedText>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "space-between",
+    padding: 16,
+  },
   inFoContainer: {
     display: "flex",
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
   },
+  bottomButton: {
+    width: "100%",
+  }
 });
