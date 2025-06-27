@@ -27,6 +27,7 @@ export default function Host() {
         onChangeText={setInput}
         style={{ marginVertical: 16 }}
         mode="outlined"
+        placeholder="例如：http://0.0.0.0:8000"
       />
       <Button mode="contained" onPress={handleSave} style={{ marginBottom: 8 }}>
         保存

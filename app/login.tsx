@@ -51,7 +51,7 @@ export default function Login() {
 
   const handleHostPress = () => {
     const now = Date.now();
-    if (now - lastTapTime.current > 2000) {
+    if (now - lastTapTime.current > 1000) {
       setHostTapCount(1);
       lastTapTime.current = now;
     } else {

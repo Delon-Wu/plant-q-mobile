@@ -13,6 +13,7 @@ export default function Me() {
   const dispatch = useDispatch();
 
   const handleLogout = async () => {
+    router.replace("/login");
     await logout(userInfo.refreshToken!);
     dispatch(clearUserInfo());
     router.replace("/login");

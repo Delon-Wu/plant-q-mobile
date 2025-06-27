@@ -39,8 +39,8 @@ export default function HomeScreen() {
         </Card.Content>
       </Card>
 
-      {/* TODO: 没有目标时显示占位图 */}
-      <ThemedText type="subtitle">进行中的目标</ThemedText>
+      {/* TODO: 没有任务时显示占位图 */}
+      <ThemedText type="subtitle">进行中的任务</ThemedText>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -53,10 +53,10 @@ export default function HomeScreen() {
                 variant="titleMedium"
                 style={{ color: colors.colorGroup[0], marginBottom: 10 }}
               >
-                目标1
+                任务1
               </Text>
               <Text variant="bodyMedium" style={{ marginBottom: 20 }}>
-                目标进度：{progress}%
+                任务进度：{progress}%
               </Text>
               <ProgressBar progress={0.5} color={colors.colorGroup[0]} />
             </Card.Content>
@@ -67,10 +67,10 @@ export default function HomeScreen() {
                 variant="titleMedium"
                 style={{ color: colors.colorGroup[1], marginBottom: 10 }}
               >
-                目标2
+                任务2
               </Text>
               <Text variant="bodyMedium" style={{ marginBottom: 20 }}>
-                目标进度：{progress}%
+                任务进度：{progress}%
               </Text>
               <ProgressBar progress={0.7} color={colors.colorGroup[1]} />
             </Card.Content>
@@ -81,20 +81,21 @@ export default function HomeScreen() {
                 variant="titleMedium"
                 style={{ color: colors.colorGroup[2], marginBottom: 10 }}
               >
-                目标3
+                任务3
               </Text>
               <Text variant="bodyMedium" style={{ marginBottom: 20 }}>
-                目标进度：{progress}%
+                任务进度：{progress}%
               </Text>
               <ProgressBar progress={0.3} color={colors.colorGroup[2]} />
             </Card.Content>
           </Card>
         </View>
       </ScrollView>
+
       <FAB
         icon="plus"
         style={styles.fab}
-        onPress={() => router.push("/project/createProject" as any)}
+        onPress={() => router.push("/task/createTask" as any)}
       />
     </ThemeScrollView>
   );
