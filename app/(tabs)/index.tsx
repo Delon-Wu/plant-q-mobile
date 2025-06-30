@@ -1,5 +1,5 @@
+import ThemedScrollView from "@/components/ThemedScrollView";
 import { ThemedText } from "@/components/ThemedText";
-import ThemeScrollView from "@/components/ThemeScrollView";
 import { useThemeColor } from "@/hooks/useTheme";
 import { router } from "expo-router";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -17,7 +17,7 @@ export default function HomeScreen() {
   const colors = useThemeColor();
   const progress = 50; // 假设这是从某个状态管理或API获取的任务进度
   return (
-    <ThemeScrollView>
+    <ThemedScrollView>
       {/* TODO: 获取所在位置 */}
       {/* TODO: 获取天气信息 */}
       {/* TODO: 结合最近天气显示对应养护提示 */}
@@ -97,7 +97,7 @@ export default function HomeScreen() {
         style={styles.fab}
         onPress={() => router.push("/task/createTask" as any)}
       />
-    </ThemeScrollView>
+    </ThemedScrollView>
   );
 }
 

@@ -6,7 +6,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { useBottomTabOverflow } from "@/components/ui/TabBarBackground";
 import { useThemeColor } from "@/hooks/useTheme";
 
-export default function ParallaxScrollView({ children }: PropsWithChildren) {
+export default function ThemedScrollView({ children, style }: PropsWithChildren<{style?: any}>) {
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const bottom = useBottomTabOverflow();
   const color = useThemeColor();
@@ -16,6 +16,7 @@ export default function ParallaxScrollView({ children }: PropsWithChildren) {
       scrollEventThrottle={16}
       scrollIndicatorInsets={{ bottom }}
       contentContainerStyle={{ paddingBottom: bottom, flexGrow: 1, backgroundColor: color.background, }}
+      style={style}
     >
       <ThemedView style={styles.content}>{children}</ThemedView>
     </Animated.ScrollView>
