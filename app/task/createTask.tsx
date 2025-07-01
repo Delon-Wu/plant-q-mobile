@@ -2,8 +2,10 @@ import Select from "@/components/Select";
 import ThemedScrollView from "@/components/ThemedScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import customToast from "@/components/Toast";
+import { useToast } from "@/components/ui/toast";
 import { createTask } from "@/src/api/task";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Calendar from "expo-calendar";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -32,7 +34,7 @@ const PLANT_OBJECTS = [
 ];
 
 const CreateTask = () => {
-  const [taskType, setTaskType] = useState("watering");
+  const [taskType, setTaskType] = useState("");
   const [plant, setPlant] = useState("rose");
   const [durationType, setDurationType] = useState<
     "stage" | "continuous" | "onece"
@@ -46,6 +48,7 @@ const CreateTask = () => {
   const [intervalDays, setIntervalDays] = useState("");
   const [remark, setRemark] = useState("");
   const [alarmAdded, setAlarmAdded] = useState(false);
+  const toast = useToast();
 
   // 校验函数
   const validate = () => {
@@ -67,10 +70,10 @@ const CreateTask = () => {
 
   // 提交处理
   const handleSubmit = async () => {
-    const { showToast } = customToast();
+    const { showToast } = customToast(toast);
     const err = validate();
     if (err) {
-      showToast({title: err, action: "error"});
+      showToast({ title: err, action: "error" });
       return;
     }
     let data: any = {
@@ -78,7 +81,6 @@ const CreateTask = () => {
       plant,
       duration_type: durationType,
       remark,
-      alarm: alarmAdded,
     };
     if (durationType === "stage") {
       data.start_time = startDate;
@@ -87,7 +89,7 @@ const CreateTask = () => {
     } else if (durationType === "continuous") {
       data.interval_days = Number(intervalDays);
     } else if (durationType === "onece") {
-      data.time = oneceDate;
+      data.time_at_once = oneceDate;
     }
     try {
       await createTask(data);
@@ -95,6 +97,76 @@ const CreateTask = () => {
       router.replace("/");
     } catch (e: any) {
       showToast({ title: e?.message || "创建失败", action: "error" });
+    }
+  };
+
+  // 计算下一次任务时间
+  const getNextTaskDate = () => {
+    const intervalMillis = Number(intervalDays) * 24 * 60 * 60 * 1000;
+    if (durationType === "stage") {
+      if (!intervalDays || !startDate) return null;
+      let next = new Date(startDate);
+      const now = new Date();
+      // 循环加间隔天数，直到大于今天
+      while (next <= now) {
+        next = new Date(next.getTime() + intervalMillis);
+      }
+      return next;
+    } else if (durationType === "continuous") {
+      // 持续型：从现在起加间隔天数
+      const now = new Date();
+      if (!intervalDays) return null;
+      return new Date(now.getTime() + intervalMillis);
+    } else if (durationType === "onece") {
+      return oneceDate;
+    }
+    return null;
+  };
+
+  // 添加到日历
+  const handleAddToCalendar = async () => {
+    const { showToast } = customToast(toast);
+    const err = validate();
+    if (err) {
+      showToast({ title: err, action: "error" });
+      return;
+    }
+    const nextDate = getNextTaskDate();
+    if (!nextDate) {
+      showToast({ title: "无法计算下次任务时间", action: "error" });
+      return;
+    }
+    try {
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      if (status !== "granted") {
+        showToast({ title: "未获得日历权限", action: "error" });
+        return;
+      }
+      const calendars = await Calendar.getCalendarsAsync(
+        Calendar.EntityTypes.EVENT
+      );
+      const defaultCalendar =
+        calendars.find((cal) => cal.allowsModifications) || calendars[0];
+      if (!defaultCalendar) {
+        showToast({ title: "未找到可用日历", action: "error" });
+        return;
+      }
+      // 添加事件到日历
+      const evnetId = await Calendar.createEventAsync(defaultCalendar.id, {
+        title: `养护任务：${
+          TASK_TYPES.find((t) => t.value === taskType)?.label || taskType
+        }`,
+        notes: remark,
+        startDate: nextDate,
+        endDate: new Date(nextDate.getTime() + 60 * 60 * 1000), // 默认1小时
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        alarms: [{ method: Calendar.AlarmMethod.ALERT, relativeOffset: -15 }], // 提前15分钟提醒
+      });
+      // 打开日历应用查看刚刚添加的事件
+      await Calendar.openEventInCalendarAsync({id: evnetId});
+      showToast({ title: "已添加到日历", action: "success" });
+    } catch (e: any) {
+      showToast({ title: e?.message || "添加日历失败", action: "error" });
     }
   };
 
@@ -230,10 +302,10 @@ const CreateTask = () => {
       <Button
         mode={alarmAdded ? "contained" : "outlined"}
         icon="calendar"
-        onPress={() => setAlarmAdded(!alarmAdded)}
+        onPress={handleAddToCalendar}
         style={styles.input}
       >
-        {alarmAdded ? "已添加日历事件" : "添加下一次任务到日历"}
+        {alarmAdded ? "已添加日历提醒" : "添加下一次任务日历提醒"}
       </Button>
       {/* 提交按钮 */}
       <Button mode="contained" style={styles.submitBtn} onPress={handleSubmit}>

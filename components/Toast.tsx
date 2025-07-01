@@ -1,8 +1,7 @@
 import * as React from "react";
-import { Toast, ToastDescription, ToastTitle, useToast } from "./ui/toast";
+import { Toast, ToastDescription, ToastTitle } from "./ui/toast";
 
-const customToast = () => {
-  const toast = useToast();
+const customToast = (toast: any) => {
   const toastId = Math.random();
   const showToast = ({
     title,
