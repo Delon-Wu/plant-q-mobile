@@ -37,14 +37,14 @@ const CreateTask = () => {
   const [taskType, setTaskType] = useState("");
   const [plant, setPlant] = useState("rose");
   const [durationType, setDurationType] = useState<
-    "stage" | "continuous" | "onece"
+    "stage" | "continuous" | "once"
   >("stage");
   const [startDate, setStartDate] = useState<Date | null>(new Date());
   const [endDate, setEndDate] = useState<Date | null>(new Date());
-  const [oneceDate, setOneceDate] = useState<Date | null>(new Date());
+  const [onceDate, setOnceDate] = useState<Date | null>(new Date());
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
-  const [showOnecePicker, setShowOnecePicker] = useState(false);
+  const [showOncePicker, setShowOncePicker] = useState(false);
   const [intervalDays, setIntervalDays] = useState("");
   const [remark, setRemark] = useState("");
   const [alarmAdded, setAlarmAdded] = useState(false);
@@ -62,8 +62,8 @@ const CreateTask = () => {
       if (!intervalDays) return "请输入间隔天数";
     } else if (durationType === "continuous") {
       if (!intervalDays) return "请输入间隔天数";
-    } else if (durationType === "onece") {
-      if (!oneceDate) return "请选择单次任务时间";
+    } else if (durationType === "once") {
+      if (!onceDate) return "请选择单次任务时间";
     }
     return null;
   };
@@ -77,7 +77,7 @@ const CreateTask = () => {
       return;
     }
     let data: any = {
-      type: taskType,
+      task_type: taskType,
       plant,
       duration_type: durationType,
       remark,
@@ -88,8 +88,8 @@ const CreateTask = () => {
       data.interval_days = Number(intervalDays);
     } else if (durationType === "continuous") {
       data.interval_days = Number(intervalDays);
-    } else if (durationType === "onece") {
-      data.time_at_once = oneceDate;
+    } else if (durationType === "once") {
+      data.time_at_once = onceDate;
     }
     try {
       await createTask(data);
@@ -100,28 +100,7 @@ const CreateTask = () => {
     }
   };
 
-  // 计算下一次任务时间
-  const getNextTaskDate = () => {
-    const intervalMillis = Number(intervalDays) * 24 * 60 * 60 * 1000;
-    if (durationType === "stage") {
-      if (!intervalDays || !startDate) return null;
-      let next = new Date(startDate);
-      const now = new Date();
-      // 循环加间隔天数，直到大于今天
-      while (next <= now) {
-        next = new Date(next.getTime() + intervalMillis);
-      }
-      return next;
-    } else if (durationType === "continuous") {
-      // 持续型：从现在起加间隔天数
-      const now = new Date();
-      if (!intervalDays) return null;
-      return new Date(now.getTime() + intervalMillis);
-    } else if (durationType === "onece") {
-      return oneceDate;
-    }
-    return null;
-  };
+  
 
   // 添加到日历
   const handleAddToCalendar = async () => {
@@ -204,7 +183,7 @@ const CreateTask = () => {
             <ThemedText>阶段型</ThemedText>
             <RadioButton value="continuous" />
             <ThemedText>持续型</ThemedText>
-            <RadioButton value="onece" />
+            <RadioButton value="once" />
             <ThemedText>单次</ThemedText>
           </View>
         </RadioButton.Group>
@@ -257,26 +236,26 @@ const CreateTask = () => {
         </>
       )}
       {/* 间隔天数输入 */}
-      {durationType === "onece" ? (
+      {durationType === "once" ? (
         <>
           <Button
             mode="outlined"
-            onPress={() => setShowOnecePicker(true)}
+            onPress={() => setShowOncePicker(true)}
             style={styles.input}
             icon="calendar"
           >
-            {oneceDate
-              ? `单次任务时间: ${oneceDate.toLocaleDateString()}`
+            {onceDate
+              ? `单次任务时间: ${onceDate.toLocaleDateString()}`
               : "选择时间"}
           </Button>
-          {showOnecePicker && (
+          {showOncePicker && (
             <DateTimePicker
-              value={oneceDate || new Date()}
+              value={onceDate || new Date()}
               mode="date"
               display="default"
               onChange={(_: any, date?: Date) => {
-                setShowOnecePicker(false);
-                if (date) setOneceDate(date);
+                setShowOncePicker(false);
+                if (date) setOnceDate(date);
               }}
             />
           )}

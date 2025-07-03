@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import { router } from 'expo-router';
-import { AccessToken } from '../constants/localStorageKey';
+import { refreshToken } from '../api/account';
 import { store } from '../store';
+import { clearUserInfo, setToken } from '../store/userSlice';
 
 export interface ApiResponse<T> {
   code: number;
@@ -61,9 +61,15 @@ apiClient.interceptors.response.use(
       console.log('Axios Error JSON:', error.toJSON());
     }
     if (error.status === 401) {
-      // TODO: 根据返回数据里的code === 40101来判断token是否过期
-      await AsyncStorage.removeItem(AccessToken);
-      router.replace('/login');
+      const tokenToRefresh = store.getState().user.refreshToken || '';
+      try {
+        // TODO: 根据返回数据里的code === 40101来判断token是否过期
+        const res = await refreshToken(tokenToRefresh);
+        store.dispatch(setToken({ refreshToken: tokenToRefresh, accessToken: res.data.data.access }));
+      } catch (e) {
+        store.dispatch(clearUserInfo());
+        router.replace('/login');
+      }
     }
     console.error('API Error:', error.response?.data);
     return Promise.reject<ErrorResponse>(error.response?.data || { message: error.message });

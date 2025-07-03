@@ -5,9 +5,9 @@
   "scripts": {
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "DARK_MODE=media expo start --android",
-    "ios": "DARK_MODE=media expo start --ios",
-    "web": "DARK_MODE=media npx expo start --web",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "npx expo start --web",
     "lint": "expo lint"
   },
   "dependencies": {

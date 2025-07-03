@@ -23,5 +23,5 @@ export async function register(data: { email: string, password: string, password
 }
 
 export async function refreshToken(refreshToken: string) {
-  return request.post('/accounts/login/refresh', { refresh: refreshToken })
+  return request.post<ApiResponse<{access: string}>>('/accounts/login/refresh', { refresh: refreshToken })
 }

@@ -19,21 +19,21 @@ export function createTask(data: {
   time_at_once?: number;
 }
 ) {
-  return request.post('/task/', data)
+  return request.post('/task/operate/', data)
 }
 
 export function updateTask(id: number, data: any) {
-  return request.put(`/task/${id}/`, data)
+  return request.put(`/task/operate/${id}/`, data)
 }
 
 export function deleteTask(id: number) {
-  return request.delete(`/task/${id}/`)
+  return request.delete(`/task/operate/${id}/`)
 }
 
 export function getTaskHistory(id: number) {
-  return request.get(`/task/${id}/history/`)
+  return request.get(`/task/operate/${id}/history/`)
 }
 
 export function getTaskHistoryDetail(id: number) {
-  return request.get(`/task/history/${id}/`)
+  return request.get(`/task/operate/history/${id}/`)
 }
