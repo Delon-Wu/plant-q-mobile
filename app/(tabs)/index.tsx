@@ -1,9 +1,15 @@
 import ThemedScrollView from "@/components/ThemedScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useTheme";
+import { getTaskList } from "@/src/api/task";
+import { TASK_TYPES } from "@/src/constants/task";
+import { store } from "@/src/store";
+import { DurationType } from "@/src/types/task";
+import { getNextTaskDate } from "@/src/utils/task";
 import { router } from "expo-router";
+import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { Card, FAB, ProgressBar, Text } from "react-native-paper";
+import { Card, FAB, Text } from "react-native-paper";
 
 const Information = {
   0: "快开始今天的任务吧！",
@@ -15,7 +21,50 @@ const Information = {
 };
 export default function HomeScreen() {
   const colors = useThemeColor();
-  const progress = 50; // 假设这是从某个状态管理或API获取的任务进度
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const progress = 50; // TODO: 进度可根据任务完成度计算
+
+  useEffect(() => {
+    setLoading(true);
+    const user = store.getState().user;
+    console.log('user-->', user)
+    getTaskList()
+      .then((res) => {
+        if (res.data.code === 200) {
+          setTasks(res?.data.data || []);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // 获取任务类型label
+  const getTaskTypeLabel = (type: string) => {
+    return TASK_TYPES.find((t) => t.value === type)?.label || type;
+  };
+
+  // 获取持续类型label
+  const getDurationTypeLabel = (type: string) => {
+    switch (type) {
+      case DurationType.stage:
+        return "阶段型";
+      case DurationType.continuous:
+        return "持续型";
+      case DurationType.once:
+        return "单次";
+      default:
+        return type;
+    }
+  };
+
+  // 格式化时间
+  const formatDate = (date: string | number | Date | undefined) => {
+    if (!date) return "-";
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return "-";
+    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  };
+
   return (
     <ThemedScrollView>
       {/* TODO: 获取所在位置 */}
@@ -35,7 +84,6 @@ export default function HomeScreen() {
           >
             今天的任务进度：{progress}%
           </Text>
-          <ProgressBar progress={0.5} color={colors.secondary} />
         </Card.Content>
       </Card>
 
@@ -47,48 +95,66 @@ export default function HomeScreen() {
         style={{ marginVertical: 10, paddingHorizontal: 5, flexGrow: 0 }}
       >
         <View style={{ flexDirection: "row" }}>
-          <Card style={styles.goalCard}>
-            <Card.Content>
-              <Text
-                variant="titleMedium"
-                style={{ color: colors.colorGroup[0], marginBottom: 10 }}
-              >
-                任务1
-              </Text>
-              <Text variant="bodyMedium" style={{ marginBottom: 20 }}>
-                任务进度：{progress}%
-              </Text>
-              <ProgressBar progress={0.5} color={colors.colorGroup[0]} />
-            </Card.Content>
-          </Card>
-          <Card style={styles.goalCard}>
-            <Card.Content>
-              <Text
-                variant="titleMedium"
-                style={{ color: colors.colorGroup[1], marginBottom: 10 }}
-              >
-                任务2
-              </Text>
-              <Text variant="bodyMedium" style={{ marginBottom: 20 }}>
-                任务进度：{progress}%
-              </Text>
-              <ProgressBar progress={0.7} color={colors.colorGroup[1]} />
-            </Card.Content>
-          </Card>
-          <Card style={styles.goalCard}>
-            <Card.Content>
-              <Text
-                variant="titleMedium"
-                style={{ color: colors.colorGroup[2], marginBottom: 10 }}
-              >
-                任务3
-              </Text>
-              <Text variant="bodyMedium" style={{ marginBottom: 20 }}>
-                任务进度：{progress}%
-              </Text>
-              <ProgressBar progress={0.3} color={colors.colorGroup[2]} />
-            </Card.Content>
-          </Card>
+          {loading ? (
+            <Text>加载中...</Text>
+          ) : tasks.length === 0 ? (
+            <Text>暂无任务</Text>
+          ) : (
+            tasks.map((task, idx) => (
+              <Card style={styles.goalCard} key={task.id || idx}>
+                <Card.Content>
+                  <Text
+                    variant="titleMedium"
+                    style={{ color: colors.colorGroup[0], marginBottom: 10 }}
+                  >
+                    {getTaskTypeLabel(task.task_type)} - {task.plant}
+                  </Text>
+                  <Text style={{ color: colors.text, marginBottom: 4 }}>
+                    类型：{getDurationTypeLabel(task.duration_type)}
+                  </Text>
+                  {task.duration_type === DurationType.stage && (
+                    <>
+                      <Text style={{ color: colors.text, marginBottom: 2 }}>
+                        开始：{formatDate(task.start_time)}
+                      </Text>
+                      <Text style={{ color: colors.text, marginBottom: 2 }}>
+                        结束：{formatDate(task.end_time)}
+                      </Text>
+                      <Text style={{ color: colors.text, marginBottom: 2 }}>
+                        下一次：
+                        {formatDate(
+                          getNextTaskDate(
+                            task.interval_days,
+                            task.duration_type as DurationType,
+                            new Date(task.start_time),
+                            new Date(task.time_at_once)
+                          ) || ""
+                        )}
+                      </Text>
+                    </>
+                  )}
+                  {task.duration_type === DurationType.continuous && (
+                    <Text style={{ color: colors.text, marginBottom: 2 }}>
+                      下一次：
+                      {formatDate(
+                        getNextTaskDate(
+                          task.interval_days,
+                          task.duration_type,
+                          null,
+                          new Date(task.time_at_once)
+                        ) || ""
+                      )}
+                    </Text>
+                  )}
+                  {task.duration_type === DurationType.once && (
+                    <Text style={{ color: colors.text, marginBottom: 2 }}>
+                      单次时间：{formatDate(task.time_at_once)}
+                    </Text>
+                  )}
+                </Card.Content>
+              </Card>
+            ))
+          )}
         </View>
       </ScrollView>
 

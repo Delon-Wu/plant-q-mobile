@@ -4,6 +4,9 @@ import { ThemedText } from "@/components/ThemedText";
 import customToast from "@/components/Toast";
 import { useToast } from "@/components/ui/toast";
 import { createTask } from "@/src/api/task";
+import { TASK_TYPES } from "@/src/constants/task";
+import { DurationType } from "@/src/types/task";
+import { getNextTaskDate } from "@/src/utils/task";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Calendar from "expo-calendar";
 import { router } from "expo-router";
@@ -11,21 +14,6 @@ import React, { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, RadioButton, TextInput } from "react-native-paper";
 
-const TASK_TYPES = [
-  { label: "灌溉", value: "Irrigation" },
-  { label: "排水优化", value: "DrainageImprovement" },
-  { label: "施肥", value: "Fertilization" },
-  { label: "修剪", value: "Pruning" },
-  { label: "整形", value: "Training" },
-  { label: "施药", value: "PesticideApplication)" },
-  { label: "休眠期管理", value: "DormancyManagement" },
-  { label: "繁殖操作", value: "Propagation" },
-  { label: "光照调控", value: "LightRegulation" },
-  { label: "温湿度控制", value: "Temperature&HumidityControl" },
-  { label: "换土/换盆", value: "Repotting" },
-  { label: "基质调配", value: "SubstrateFormulation" },
-  { label: "其它", value: "other" },
-];
 const PLANT_OBJECTS = [
   { label: "玫瑰", value: "rose" },
   { label: "多肉", value: "succulent" },
@@ -36,9 +24,7 @@ const PLANT_OBJECTS = [
 const CreateTask = () => {
   const [taskType, setTaskType] = useState("");
   const [plant, setPlant] = useState("rose");
-  const [durationType, setDurationType] = useState<
-    "stage" | "continuous" | "once"
-  >("stage");
+  const [durationType, setDurationType] = useState<DurationType>(DurationType.stage);
   const [startDate, setStartDate] = useState<Date | null>(new Date());
   const [endDate, setEndDate] = useState<Date | null>(new Date());
   const [onceDate, setOnceDate] = useState<Date | null>(new Date());
@@ -54,7 +40,7 @@ const CreateTask = () => {
   const validate = () => {
     if (!taskType) return "请选择任务类型";
     if (!durationType) return "请选择持续类型";
-    if (durationType === "stage") {
+    if (durationType === DurationType.stage) {
       if (!startDate) return "请选择开始时间";
       if (!endDate) return "请选择结束时间";
       if (startDate && endDate && endDate < startDate)
@@ -82,7 +68,7 @@ const CreateTask = () => {
       duration_type: durationType,
       remark,
     };
-    if (durationType === "stage") {
+    if (durationType === DurationType.stage) {
       data.start_time = startDate;
       data.end_time = endDate;
       data.interval_days = Number(intervalDays);
@@ -104,13 +90,14 @@ const CreateTask = () => {
 
   // 添加到日历
   const handleAddToCalendar = async () => {
+    if (alarmAdded) return;
     const { showToast } = customToast(toast);
     const err = validate();
     if (err) {
       showToast({ title: err, action: "error" });
       return;
     }
-    const nextDate = getNextTaskDate();
+    const nextDate = getNextTaskDate(Number(intervalDays), durationType, startDate, onceDate);
     if (!nextDate) {
       showToast({ title: "无法计算下次任务时间", action: "error" });
       return;
@@ -141,9 +128,10 @@ const CreateTask = () => {
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         alarms: [{ method: Calendar.AlarmMethod.ALERT, relativeOffset: -15 }], // 提前15分钟提醒
       });
+      setAlarmAdded(true);
+      showToast({ title: "已添加到日历", action: "success" });
       // 打开日历应用查看刚刚添加的事件
       await Calendar.openEventInCalendarAsync({id: evnetId});
-      showToast({ title: "已添加到日历", action: "success" });
     } catch (e: any) {
       showToast({ title: e?.message || "添加日历失败", action: "error" });
     }
@@ -179,17 +167,17 @@ const CreateTask = () => {
           value={durationType}
         >
           <View style={styles.radioRow}>
-            <RadioButton value="stage" />
+            <RadioButton value={DurationType.stage} />
             <ThemedText>阶段型</ThemedText>
-            <RadioButton value="continuous" />
+            <RadioButton value={DurationType.continuous} />
             <ThemedText>持续型</ThemedText>
-            <RadioButton value="once" />
+            <RadioButton value={DurationType.once} />
             <ThemedText>单次</ThemedText>
           </View>
         </RadioButton.Group>
       </View>
       {/* 阶段型时显示时间选择 */}
-      {durationType === "stage" && (
+      {durationType === DurationType.stage && (
         <>
           <Button
             mode="outlined"

@@ -2,7 +2,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { logout } from "@/src/api/account";
 import { RootState } from "@/src/store";
-import { clearUserInfo, selectIsLogin } from "@/src/store/userSlice";
+import { clearUserStore, selectIsLogin } from "@/src/store/userSlice";
 import { router } from "expo-router";
 import { StyleSheet } from "react-native";
 import { Avatar, Button } from "react-native-paper";
@@ -14,7 +14,7 @@ export default function Me() {
 
   const handleLogout = () => {
     logout(userInfo.refreshToken!);
-    dispatch(clearUserInfo());
+    dispatch(clearUserStore());
     router.replace("/login");
   };
 

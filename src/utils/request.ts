@@ -2,7 +2,7 @@ import axios, { AxiosError, AxiosInstance, AxiosResponse } from 'axios';
 import { router } from 'expo-router';
 import { refreshToken } from '../api/account';
 import { store } from '../store';
-import { clearUserInfo, setToken } from '../store/userSlice';
+import { clearUserStore, setToken } from '../store/userSlice';
 
 export interface ApiResponse<T> {
   code: number;
@@ -33,11 +33,15 @@ apiClient.interceptors.request.use(
     if (host) {
       config.baseURL = host + '/api';
     }
+    console.log('config-->', config);
     if (whiteList.includes(config.url ?? '')) {
       return config;
     } else {
       const userInfo = store.getState().user;
-      if (userInfo?.accessToken) config.headers = { ...config.headers, Authorization: `Bearer ${userInfo.accessToken}` };
+      console.log('userInfo-->', userInfo);
+      if (userInfo?.accessToken) {
+        config.headers = { ...config.headers, Authorization: `Bearer ${userInfo.accessToken}` };
+      }
     }
     return config;
   },
@@ -61,13 +65,19 @@ apiClient.interceptors.response.use(
       console.log('Axios Error JSON:', error.toJSON());
     }
     if (error.status === 401) {
-      const tokenToRefresh = store.getState().user.refreshToken || '';
-      try {
-        // TODO: 根据返回数据里的code === 40101来判断token是否过期
-        const res = await refreshToken(tokenToRefresh);
-        store.dispatch(setToken({ refreshToken: tokenToRefresh, accessToken: res.data.data.access }));
-      } catch (e) {
-        store.dispatch(clearUserInfo());
+      if (error.config?.url !== '/accounts/refresh-token') {
+        // 如果是401错误且不是刷新token的请求，则尝试刷新token
+        const tokenToRefresh = store.getState().user.refreshToken || '';
+        if (tokenToRefresh) {
+          // TODO: 根据返回数据里的code === 40101来判断token是否过期
+          const res = await refreshToken(tokenToRefresh);
+          store.dispatch(setToken({ refreshToken: tokenToRefresh, accessToken: res.data.data.access }));
+        } else {
+          store.dispatch(clearUserStore());
+          router.replace('/login');
+        }
+      } else {
+        store.dispatch(clearUserStore());
         router.replace('/login');
       }
     }

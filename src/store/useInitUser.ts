@@ -1,6 +1,6 @@
 import { getUserInfo } from '@/src/api/account';
 import { AccessToken, RefreshToken } from '@/src/constants/localStorageKey';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setToken, setUserInfo } from './userSlice';
@@ -11,8 +11,8 @@ export default function useInitUser() {
   
   useEffect(() => {
     (async () => {
-      const accessToken = await AsyncStorage.getItem(AccessToken) || '';
-      const refreshToken = await AsyncStorage.getItem(RefreshToken) || '';
+      const accessToken = await SecureStore.getItemAsync(AccessToken) || '';
+      const refreshToken = await SecureStore.getItemAsync(RefreshToken) || '';
       if (accessToken || refreshToken) {
         dispatch(setToken({
           accessToken,

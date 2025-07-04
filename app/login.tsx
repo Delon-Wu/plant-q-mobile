@@ -16,11 +16,10 @@ export default function Login() {
   const lastTapTime = useRef<number>(0);
 
   const handleLogin = () => {
-    // TODO: Implement login functionality
-    // console.log('Login:', email, password);
     login(email, password)
       .then(({ data }) => {
         if (data.code === 200) {
+          // TODO: Store tokens in secure storage
           dispatch(
             setToken({
               accessToken: data.data.access,

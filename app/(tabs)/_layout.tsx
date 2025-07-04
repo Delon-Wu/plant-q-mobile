@@ -1,16 +1,13 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
-
-import { HapticTab } from '@/components/HapticTab';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { useThemeColor } from '@/hooks/useTheme';
-import useInitUser from '@/src/store/useInitUser';
+import { HapticTab } from "@/components/HapticTab";
+import TabBarBackground from "@/components/ui/TabBarBackground";
+import { useThemeColor } from "@/hooks/useTheme";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Tabs } from "expo-router";
+import React from "react";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
   const colors = useThemeColor();
-  useInitUser();
 
   return (
     <Tabs
@@ -22,33 +19,52 @@ export default function TabLayout() {
         tabBarStyle: Platform.select({
           ios: {
             // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
+            position: "absolute",
           },
           default: {
             backgroundColor: colors.background,
             borderTopWidth: 0,
           },
         }),
-      }}>
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: '首页',
-          tabBarIcon: ({ color, focused }) => <Ionicons size={28} name={focused ? "home" : "home-outline"} color={color} />,
+          title: "首页",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={28}
+              name={focused ? "home" : "home-outline"}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="qAssistant"
         options={{
-          title: 'Q 助手',
-          tabBarIcon: ({ color, focused }) => <Ionicons size={28} name={focused ? "chatbox" : "chatbox-outline"} color={color} />,
+          title: "Q 助手",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={28}
+              name={focused ? "chatbox" : "chatbox-outline"}
+              color={color}
+            />
+          ),
         }}
       />
       <Tabs.Screen
         name="me"
         options={{
-          title: '我',
-          tabBarIcon: ({ color, focused }) => <Ionicons size={28} name={focused ? "person" : "person-outline"} color={color} />,
+          title: "我",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              size={28}
+              name={focused ? "person" : "person-outline"}
+              color={color}
+            />
+          ),
         }}
       />
     </Tabs>

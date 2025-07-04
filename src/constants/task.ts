@@ -1,0 +1,15 @@
+export const TASK_TYPES = [
+  { label: "灌溉", value: "Irrigation" },
+  { label: "排水优化", value: "DrainageImprovement" },
+  { label: "施肥", value: "Fertilization" },
+  { label: "修剪", value: "Pruning" },
+  { label: "整形", value: "Training" },
+  { label: "施药", value: "PesticideApplication)" },
+  { label: "休眠期管理", value: "DormancyManagement" },
+  { label: "繁殖操作", value: "Propagation" },
+  { label: "光照调控", value: "LightRegulation" },
+  { label: "温湿度控制", value: "Temperature&HumidityControl" },
+  { label: "换土/换盆", value: "Repotting" },
+  { label: "基质调配", value: "SubstrateFormulation" },
+  { label: "其它", value: "other" },
+];

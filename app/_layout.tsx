@@ -3,10 +3,12 @@ import "@/global.css";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import React from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import useTheme from "@/hooks/useTheme";
+import { SafeAreaView } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import ReduxProvider from "../src/store/ReduxProvider";
 
@@ -23,19 +25,21 @@ export default function RootLayout() {
   }
 
   return (
-    <GluestackUIProvider mode={colorScheme ?? "light"}>
-      <ReduxProvider>
-        <PaperProvider theme={customTheme}>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="login" options={{ title: "登录" }} />
-            <Stack.Screen name="register" options={{ title: "注册" }} />
-            <Stack.Screen name="task" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </PaperProvider>
-      </ReduxProvider>
-    </GluestackUIProvider>
+    <SafeAreaView style={{ flex: 1 }}>
+      <GluestackUIProvider mode={colorScheme ?? "light"}>
+        <ReduxProvider>
+          <PaperProvider theme={customTheme}>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="login" options={{ title: "登录" }} />
+              <Stack.Screen name="register" options={{ title: "注册" }} />
+              <Stack.Screen name="task" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+          </PaperProvider>
+        </ReduxProvider>
+      </GluestackUIProvider>
+    </SafeAreaView>
   );
 }

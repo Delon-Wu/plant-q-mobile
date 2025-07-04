@@ -1,7 +1,22 @@
-import request from '@/src/utils/request';
+import request, { ApiResponse } from '@/src/utils/request';
+import { DurationType } from '../types/task';
 
 export function getTaskList() {
-  return request.get('/task/')
+  return request.get<ApiResponse<{
+    "id": number;
+    "user": number;
+    "plant": string;
+    "is_completed": false;
+    "task_type": string;
+    "duration_type": DurationType;
+    "start_time": Date | null;
+    "end_time": Date | null;
+    "time_at_once": Date | null;
+    "remark": string;
+    "interval_days": number;
+    "created_at": string;
+    "updated_at": string;
+  }[]>>('/task/operate/')
 }
 
 export function getTaskDetail(id: number) {

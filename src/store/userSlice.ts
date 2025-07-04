@@ -1,5 +1,3 @@
-import { AccessToken, RefreshToken } from "@/src/constants/localStorageKey";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 
 interface UserState {
@@ -31,21 +29,17 @@ const userSlice = createSlice({
     setToken(state, action: PayloadAction<{ accessToken: string; refreshToken: string }>) {
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
-      AsyncStorage.setItem(AccessToken, action.payload.accessToken);
-      AsyncStorage.setItem(RefreshToken, action.payload.refreshToken);
     },
-    clearUserInfo(state) {
+    clearUserStore(state) {
       state.name = '';
       state.email = '';
       state.phone = '';
       state.accessToken = '';
       state.refreshToken = '';
-      AsyncStorage.removeItem(AccessToken);
-      AsyncStorage.removeItem(RefreshToken);
     },
   },
 });
 
 export const selectIsLogin = (state: UserState) => !!state.accessToken && !!state.refreshToken;
-export const { setUserInfo, clearUserInfo, setToken } = userSlice.actions;
+export const { setUserInfo, clearUserStore, setToken } = userSlice.actions;
 export default userSlice.reducer;
