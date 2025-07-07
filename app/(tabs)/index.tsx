@@ -3,9 +3,9 @@ import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useTheme";
 import { getTaskList } from "@/src/api/task";
 import { TASK_TYPES } from "@/src/constants/task";
-import { store } from "@/src/store";
 import { DurationType } from "@/src/types/task";
 import { getNextTaskDate } from "@/src/utils/task";
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -19,6 +19,7 @@ const Information = {
   100: "恭喜你，你已经完成了所有的任务！",
   default: "快开始今天的任务吧！",
 };
+
 export default function HomeScreen() {
   const colors = useThemeColor();
   const [tasks, setTasks] = useState<any[]>([]);
@@ -27,8 +28,6 @@ export default function HomeScreen() {
 
   useEffect(() => {
     setLoading(true);
-    const user = store.getState().user;
-    console.log('user-->', user)
     getTaskList()
       .then((res) => {
         if (res.data.code === 200) {
@@ -62,7 +61,7 @@ export default function HomeScreen() {
     if (!date) return "-";
     const d = new Date(date);
     if (isNaN(d.getTime())) return "-";
-    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
   };
 
   return (
@@ -92,7 +91,7 @@ export default function HomeScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        style={{ marginVertical: 10, paddingHorizontal: 5, flexGrow: 0 }}
+        style={{ paddingHorizontal: 5, flexGrow: 0 }}
       >
         <View style={{ flexDirection: "row" }}>
           {loading ? (
@@ -103,53 +102,64 @@ export default function HomeScreen() {
             tasks.map((task, idx) => (
               <Card style={styles.goalCard} key={task.id || idx}>
                 <Card.Content>
-                  <Text
-                    variant="titleMedium"
-                    style={{ color: colors.colorGroup[0], marginBottom: 10 }}
-                  >
+                  <Text variant="titleMedium" style={{ color: colors.primary }}>
                     {getTaskTypeLabel(task.task_type)} - {task.plant}
                   </Text>
-                  <Text style={{ color: colors.text, marginBottom: 4 }}>
-                    类型：{getDurationTypeLabel(task.duration_type)}
+                  <Text style={styles[task.duration_type as DurationType]}>
+                    {getDurationTypeLabel(task.duration_type)}
                   </Text>
                   {task.duration_type === DurationType.stage && (
                     <>
-                      <Text style={{ color: colors.text, marginBottom: 2 }}>
-                        开始：{formatDate(task.start_time)}
-                      </Text>
-                      <Text style={{ color: colors.text, marginBottom: 2 }}>
-                        结束：{formatDate(task.end_time)}
-                      </Text>
-                      <Text style={{ color: colors.text, marginBottom: 2 }}>
-                        下一次：
-                        {formatDate(
-                          getNextTaskDate(
-                            task.interval_days,
-                            task.duration_type as DurationType,
-                            new Date(task.start_time),
-                            new Date(task.time_at_once)
-                          ) || ""
-                        )}
-                      </Text>
+                      <ThemedText style={{ marginBottom: 2 }}>
+                        <Ionicons name="calendar" size={16} color={colors.secondary} />
+                        {formatDate(task.start_time)} -{" "}
+                        {formatDate(task.end_time)}
+                      </ThemedText>
+                      <ThemedText style={{ marginBottom: 2 }}>
+                        请于
+                        <ThemedText style={styles.dateInline}>
+                          <Ionicons name="calendar" size={16} color={colors.secondary} />
+                          {formatDate(
+                            getNextTaskDate(
+                              task.interval_days,
+                              task.duration_type as DurationType,
+                              new Date(task.start_time),
+                              new Date(task.time_at_once)
+                            ) || ""
+                          )}
+                        </ThemedText>
+                        执行一次
+                      </ThemedText>
                     </>
                   )}
                   {task.duration_type === DurationType.continuous && (
-                    <Text style={{ color: colors.text, marginBottom: 2 }}>
-                      下一次：
-                      {formatDate(
-                        getNextTaskDate(
-                          task.interval_days,
-                          task.duration_type,
-                          null,
-                          new Date(task.time_at_once)
-                        ) || ""
-                      )}
-                    </Text>
+                    <ThemedText style={{ marginBottom: 2 }}>
+                      请于
+                      <ThemedText style={styles.dateInline}>
+                        <Ionicons name="calendar" size={16} color={colors.secondary} />
+                        {formatDate(
+                          getNextTaskDate(
+                            task.interval_days,
+                            task.duration_type,
+                            null,
+                            new Date(task.time_at_once)
+                          ) || ""
+                        )}
+                      </ThemedText>
+                      执行一次
+                    </ThemedText>
                   )}
                   {task.duration_type === DurationType.once && (
-                    <Text style={{ color: colors.text, marginBottom: 2 }}>
-                      单次时间：{formatDate(task.time_at_once)}
-                    </Text>
+                    <ThemedText style={{ marginBottom: 2 }}>
+                      请于
+                      <ThemedText
+                        style={styles.dateInline}
+                      >
+                        <Ionicons name="calendar" size={16} color={colors.secondary} />
+                        {formatDate(task.time_at_once)}
+                      </ThemedText>
+                      完成任务
+                    </ThemedText>
                   )}
                 </Card.Content>
               </Card>
@@ -178,4 +188,25 @@ const styles = StyleSheet.create({
     bottom: 32,
     zIndex: 10,
   },
+  [DurationType.stage]: {
+    color: "#9ac5e5",
+  },
+  [DurationType.continuous]: {
+    color: "#4fb19d",
+  },
+  [DurationType.once]: {
+    color: "#edce7a",
+  },
+  dateInline: {
+    fontWeight: "bold",
+    marginHorizontal: 2
+  },
+  tag: {
+    color: "#c98c9a",
+    backgroundColor: "#c98c9a22",
+    alignSelf: "flex-start",
+    borderRadius: 8,
+    marginBottom: 2,
+    marginRight: 4
+  }
 });
