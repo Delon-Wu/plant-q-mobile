@@ -3,14 +3,16 @@ import Select from "@/components/Select";
 import ThemedScrollView from "@/components/ThemedScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import customToast from "@/components/Toast";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
-import { createTask } from "@/src/api/task";
+import { getTaskDetail, updateTask } from "@/src/api/task";
 import { TASK_TYPES } from "@/src/constants/task";
 import { DurationType } from "@/src/types/task";
 import { asyncSaveTaskToCalendar, getNextTaskDate } from "@/src/utils/task";
 import * as Calendar from "expo-calendar";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import * as React from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, RadioButton, TextInput } from "react-native-paper";
 
@@ -21,22 +23,74 @@ const PLANT_OBJECTS = [
   { label: "其他", value: "other" },
 ];
 
-const CreateTask = () => {
+const TaskDetail = () => {
+  const { id } = useLocalSearchParams();
+  const toast = useToast();
+  const { showToast } = customToast(toast);
+  const [loading, setLoading] = useState(true);
   const [taskType, setTaskType] = useState("");
   const [plant, setPlant] = useState("rose");
   const [durationType, setDurationType] = useState<DurationType>(
     DurationType.stage
   );
-  const [startDate, setStartDate] = useState<Date | null>(new Date());
-  const [endDate, setEndDate] = useState<Date | null>(new Date());
-  const [onceDate, setOnceDate] = useState<Date | null>(new Date());
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [showOncePicker, setShowOncePicker] = useState(false);
+  const [startDate, setStartDate] = useState<Date | null>(null);
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [onceDate, setOnceDate] = useState<Date | null>(null);
   const [intervalDays, setIntervalDays] = useState("");
   const [remark, setRemark] = useState("");
   const [alarmAdded, setAlarmAdded] = useState(false);
-  const toast = useToast();
+  const [isComplete, setIsComplete] = useState(false);
+
+  useEffect(() => {
+    if (!id) return;
+    const taskId = Array.isArray(id) ? id[0] : id;
+    setLoading(true);
+    getTaskDetail(taskId)
+      .then((res) => {
+        if (res.data.code === 200) {
+          const t = res.data.data;
+          setTaskType(t.task_type);
+          setPlant(t.plant);
+          setDurationType(t.duration_type);
+          setStartDate(t.start_time ? new Date(t.start_time) : null);
+          setEndDate(t.end_time ? new Date(t.end_time) : null);
+          setOnceDate(t.time_at_once ? new Date(t.time_at_once) : null);
+          setIntervalDays(t.interval_days ? String(t.interval_days) : "");
+          setRemark(t.remark || "");
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  // 保存间隔天数和备注（页面卸载时）
+  useEffect(() => {
+    return () => {
+      if (!id) return;
+      const taskId = Array.isArray(id) ? id[0] : id;
+      if (intervalDays !== "") {
+        updateTask(taskId, { interval_days: Number(intervalDays) });
+      }
+      if (remark !== "") {
+        updateTask(taskId, { remark });
+      }
+    };
+     
+  }, [id, intervalDays, remark]);
+
+  // 通用自动保存（只用于即时保存的字段）
+  const autoSave = async (field: string, value: any) => {
+    if (!id) return;
+    const taskId = Array.isArray(id) ? id[0] : id;
+    try {
+      await updateTask(taskId, { [field]: value });
+      showToast({ title: "更新成功", action: "success" });
+    } catch (e: any) {
+      showToast({
+        title: typeof e === "string" ? e : e?.message || "更新失败",
+        action: "error",
+      });
+    }
+  };
 
   // 校验函数
   const validate = () => {
@@ -56,42 +110,9 @@ const CreateTask = () => {
     return null;
   };
 
-  // 提交处理
-  const handleSubmit = async () => {
-    const { showToast } = customToast(toast);
-    const err = validate();
-    if (err) {
-      showToast({ title: err, action: "error" });
-      return;
-    }
-    let data: any = {
-      task_type: taskType,
-      plant,
-      duration_type: durationType,
-      remark,
-    };
-    if (durationType === DurationType.stage) {
-      data.start_time = startDate;
-      data.end_time = endDate;
-      data.interval_days = Number(intervalDays);
-    } else if (durationType === "continuous") {
-      data.interval_days = Number(intervalDays);
-    } else if (durationType === "once") {
-      data.time_at_once = onceDate;
-    }
-    try {
-      await createTask(data);
-      showToast({ title: "创建成功", action: "success" });
-      router.replace("/");
-    } catch (e: any) {
-      showToast({ title: e?.message || "创建失败", action: "error" });
-    }
-  };
-
   // 添加到日历
   const handleAddToCalendar = async () => {
     if (alarmAdded) return;
-    const { showToast } = customToast(toast);
     const err = validate();
     if (err) {
       showToast({ title: err, action: "error" });
@@ -114,7 +135,7 @@ const CreateTask = () => {
         nextDate,
       });
       await Calendar.openEventInCalendarAsync({ id: eventId });
-      showToast({ title: "成功添加日历提醒", action: "success" });
+      showToast({ title: "已添加到日历", action: "success" });
       setAlarmAdded(true);
       // 打开日历应用查看刚刚添加的事件
     } catch (e: any) {
@@ -125,33 +146,48 @@ const CreateTask = () => {
     }
   };
 
+  const handleCompleteTask = async () => {
+    if (isComplete) return;
+    await autoSave("is_completed", true)
+    setIsComplete(true);
+    showToast({ title: "任务已标记为完成", action: "success" });
+  }
+
+  if (loading) return <Skeleton style={styles.container}></Skeleton>;
+
   return (
     <ThemedScrollView>
-      {/* 任务类型选择 - gluestack ui Select */}
       <ThemedText style={styles.label}>*任务类型</ThemedText>
       <Select
         className="mb-5"
         value={taskType}
-        onValueChange={setTaskType}
+        onValueChange={(v) => {
+          setTaskType(v);
+          autoSave("task_type", v);
+        }}
         options={TASK_TYPES}
         variant="underlined"
         placeholder="任务分类"
       />
-      {/* 养护作物选择 - gluestack ui Select */}
       <ThemedText style={styles.label}>养护的作物</ThemedText>
       <Select
         className="mb-5"
         value={plant}
-        onValueChange={setPlant}
+        onValueChange={(v) => {
+          setPlant(v);
+          autoSave("plant", v);
+        }}
         options={PLANT_OBJECTS}
         variant="underlined"
         placeholder="养护的作物"
       />
-      {/* 持续类型切换 */}
       <ThemedText style={styles.label}>*持续类型：</ThemedText>
       <View style={styles.row}>
         <RadioButton.Group
-          onValueChange={(v) => setDurationType(v as any)}
+          onValueChange={(v) => {
+            setDurationType(v as any);
+            autoSave("duration_type", v);
+          }}
           value={durationType}
         >
           <View style={styles.radioRow}>
@@ -164,7 +200,6 @@ const CreateTask = () => {
           </View>
         </RadioButton.Group>
       </View>
-      {/* 阶段型时显示时间选择 */}
       {durationType === DurationType.stage && (
         <>
           <DatePickerField
@@ -179,30 +214,42 @@ const CreateTask = () => {
             onChange={setEndDate}
             style={styles.input}
           />
+          <TextInput
+            label="*间隔天数"
+            value={intervalDays}
+            onChangeText={(v) => {
+              setIntervalDays(v);
+            }}
+            keyboardType="numeric"
+            style={styles.input}
+          />
         </>
       )}
-      {/* 间隔天数输入 */}
-      {durationType === "once" ? (
+      {durationType === DurationType.once && (
         <DatePickerField
           label="单次任务时间"
           value={onceDate}
           onChange={setOnceDate}
           style={styles.input}
         />
-      ) : (
+      )}
+      {durationType === DurationType.continuous && (
         <TextInput
           label="*间隔天数"
           value={intervalDays}
-          onChangeText={setIntervalDays}
+          onChangeText={(v) => {
+            setIntervalDays(v);
+          }}
           keyboardType="numeric"
           style={styles.input}
         />
       )}
-      {/* 备注 */}
       <TextInput
         label="备注"
         value={remark}
-        onChangeText={setRemark}
+        onChangeText={(v) => {
+          setRemark(v);
+        }}
         multiline
         style={styles.input}
       />
@@ -217,19 +264,24 @@ const CreateTask = () => {
           {alarmAdded ? "已添加日历提醒" : "添加下一次任务日历提醒"}
         </Button>
         {/* 提交按钮 */}
-        <Button mode="contained" onPress={handleSubmit}>
-          提交任务
+        <Button mode={isComplete ? "contained" : "outlined"} onPress={handleCompleteTask}>
+          完成任务
         </Button>
       </View>
     </ThemedScrollView>
   );
 };
 
-export default CreateTask;
+export default TaskDetail;
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   input: {
-    marginBottom: 12,
+    marginTop: 20,
   },
   row: {
     flexDirection: "row",
@@ -239,9 +291,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginLeft: 8,
-  },
-  submitBtn: {
-    marginTop: 20,
   },
   label: {
     fontSize: 12,

@@ -8,7 +8,7 @@ import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import useTheme from "@/hooks/useTheme";
-import { SafeAreaView } from "react-native";
+import { Platform, StatusBar as RNStatusBar, SafeAreaView } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import ReduxProvider from "../src/store/ReduxProvider";
 
@@ -25,21 +25,42 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <GluestackUIProvider mode={colorScheme ?? "light"}>
-        <ReduxProvider>
+    <GluestackUIProvider mode={colorScheme ?? "light"}>
+      <ReduxProvider>
+        <SafeAreaView
+          style={{
+            flex: 1,
+            backgroundColor: customTheme.colors.background,
+            paddingTop:
+              Platform.OS === "android" ? RNStatusBar.currentHeight : 0,
+          }}
+        >
           <PaperProvider theme={customTheme}>
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="login" options={{ title: "登录" }} />
-              <Stack.Screen name="register" options={{ title: "注册" }} />
+              <Stack.Screen
+                name="login"
+                options={{
+                  title: "登录",
+                  headerStyle: { backgroundColor: customTheme.colors.background },
+                  headerTitleStyle: { color: customTheme.colors.text },
+                }}
+              />
+              <Stack.Screen
+                name="register"
+                options={{
+                  title: "注册",
+                  headerStyle: { backgroundColor: customTheme.colors.background },
+                  headerTitleStyle: { color: customTheme.colors.text },
+                }}
+              />
               <Stack.Screen name="task" options={{ headerShown: false }} />
               <Stack.Screen name="+not-found" />
             </Stack>
             <StatusBar style="auto" />
           </PaperProvider>
-        </ReduxProvider>
-      </GluestackUIProvider>
-    </SafeAreaView>
+        </SafeAreaView>
+      </ReduxProvider>
+    </GluestackUIProvider>
   );
 }

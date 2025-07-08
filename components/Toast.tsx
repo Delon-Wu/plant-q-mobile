@@ -8,25 +8,33 @@ const customToast = (toast: any) => {
     description,
     action = "info",
     variant = "solid",
+    placement = "bottom",
   }: {
     title: string;
     description?: string;
     action?: "error" | "warning" | "success" | "info" | "muted";
     variant?: "solid" | "outline";
+    placement?:
+      | "top"
+      | "top right"
+      | "top left"
+      | "bottom"
+      | "bottom left"
+      | "bottom right";
   }) => {
     if (toast.isActive(toastId.toString())) {
       return; // 如果当前 toast 仍然活跃，则不显示新的 toast
     }
     toast.show({
       id: toastId.toString(),
-      placement: "top",
+      placement,
       duration: 2000,
-      render: ({ id }) => {
+      render: ({ id }: { id: string }) => {
         const uniqueToastId = "toast-" + id;
         return (
           <Toast nativeID={uniqueToastId} action={action} variant={variant}>
             <ToastTitle>{title}</ToastTitle>
-            <ToastDescription>{description}</ToastDescription>
+            {description && <ToastDescription>{description}</ToastDescription>}
           </Toast>
         );
       },

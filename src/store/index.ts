@@ -1,12 +1,12 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { configureStore } from '@reduxjs/toolkit';
 import { persistReducer, persistStore } from 'redux-persist';
-import { SecureStoreStorage } from './secureStore';
 import settingsReducer from './settingsSlice';
 import userReducer from './userSlice';
 
 const persistConfig = {
   key: 'user',
-  storage: SecureStoreStorage,
+  storage: AsyncStorage,
   whitelist: ['name', 'email', 'phone', 'accessToken', 'refreshToken'],
 };
 

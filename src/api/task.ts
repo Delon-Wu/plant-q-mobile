@@ -1,26 +1,29 @@
 import request, { ApiResponse } from '@/src/utils/request';
 import { DurationType } from '../types/task';
 
-export function getTaskList() {
-  return request.get<ApiResponse<{
-    "id": number;
-    "user": number;
-    "plant": string;
-    "is_completed": false;
-    "task_type": string;
-    "duration_type": DurationType;
-    "start_time": Date | null;
-    "end_time": Date | null;
-    "time_at_once": Date | null;
-    "remark": string;
-    "interval_days": number;
-    "created_at": string;
-    "updated_at": string;
-  }[]>>('/task/operate/')
+type TaskID = TaskID;
+interface TaskInfo {
+  "id": TaskID;
+  "user": number;
+  "plant": string;
+  "is_completed": false;
+  "task_type": string;
+  "duration_type": DurationType;
+  "start_time": Date | null;
+  "end_time": Date | null;
+  "time_at_once": Date | null;
+  "remark": string;
+  "interval_days": number;
+  "created_at": string;
+  "updated_at": string;
 }
 
-export function getTaskDetail(id: number) {
-  return request.get(`/task/${id}/`)
+export function getTaskList() {
+  return request.get<ApiResponse<TaskInfo[]>>('/task/operate/')
+}
+
+export function getTaskDetail(id: TaskID) {
+  return request.get<ApiResponse<TaskInfo>>(`/task/operate/${id}/`)
 }
 
 export function createTask(data: {
@@ -37,15 +40,15 @@ export function createTask(data: {
   return request.post('/task/operate/', data)
 }
 
-export function updateTask(id: number, data: any) {
+export function updateTask(id: TaskID, data: any) {
   return request.put(`/task/operate/${id}/`, data)
 }
 
-export function deleteTask(id: number) {
+export function deleteTask(id: TaskID) {
   return request.delete(`/task/operate/${id}/`)
 }
 
-export function getTaskHistory(id: number) {
+export function getTaskHistory(id: TaskID) {
   return request.get(`/task/operate/${id}/history/`)
 }
 

@@ -10,6 +10,10 @@ const TaskLayout = () => {
         name="createTask"
         options={{ headerTintColor: colors.text, headerTitle: '创建任务', headerStyle: { backgroundColor: colors.background }}}
       />
+      <Stack.Screen
+        name="taskDetail/[id]"
+        options={{ headerTintColor: colors.text, headerTitle: '任务详情', headerStyle: { backgroundColor: colors.background }}}
+      />
     </Stack>
   );
 };

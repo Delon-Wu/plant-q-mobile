@@ -1,3 +1,5 @@
+import * as Calendar from "expo-calendar";
+import { TASK_TYPES } from "../constants/task";
 import { DurationType } from "../types/task";
 
 
@@ -31,3 +33,29 @@ export const getNextTaskDate = (intervalDays: number, durationType: DurationType
   }
   return null;
 };
+
+export const asyncSaveTaskToCalendar = async (info: { taskType: string, remark: string, nextDate: Date }): Promise<string> => {
+  const { status } = await Calendar.requestCalendarPermissionsAsync();
+  if (status !== "granted") {
+    return Promise.reject("未获得日历权限");
+  }
+  const calendars = await Calendar.getCalendarsAsync(
+    Calendar.EntityTypes.EVENT
+  );
+  const defaultCalendar =
+    calendars.find((cal) => cal.allowsModifications) || calendars[0];
+  if (!defaultCalendar) {
+    return Promise.reject("未找到可用日历");
+  }
+  // 添加事件到日历
+  console.log('info-->', info);
+  const eventId = await Calendar.createEventAsync(defaultCalendar.id, {
+    title: `养护任务：${TASK_TYPES.find((t) => t.value === info.taskType)?.label || info.taskType}`,
+    notes: info.remark,
+    startDate: info.nextDate,
+    endDate: new Date(info.nextDate.getTime() + 60 * 60 * 1000), // 默认1小时
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    alarms: [{ method: Calendar.AlarmMethod.ALERT, relativeOffset: -15 }], // 提前15分钟提醒
+  });
+  return Promise.resolve(eventId);
+}
