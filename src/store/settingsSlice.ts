@@ -5,7 +5,7 @@ interface SettingsState {
 }
 
 const initialState: SettingsState = {
-  host: '',
+  host: process.env.NODE_ENV === 'development' ? process.env.EXPO_PUBLIC_DEV_API_HOST ?? '' : '',
 };
 
 const settingsSlice = createSlice({

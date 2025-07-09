@@ -212,12 +212,11 @@ const CreateTask = () => {
           mode={alarmAdded ? "contained" : "outlined"}
           icon="calendar"
           onPress={handleAddToCalendar}
-          className="mb-6"
         >
           {alarmAdded ? "已添加日历提醒" : "添加下一次任务日历提醒"}
         </Button>
         {/* 提交按钮 */}
-        <Button mode="contained" onPress={handleSubmit}>
+        <Button style={styles.submitBtn} mode="contained" onPress={handleSubmit}>
           提交任务
         </Button>
       </View>

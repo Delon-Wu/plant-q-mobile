@@ -57,6 +57,7 @@ const TaskDetail = () => {
           setOnceDate(t.time_at_once ? new Date(t.time_at_once) : null);
           setIntervalDays(t.interval_days ? String(t.interval_days) : "");
           setRemark(t.remark || "");
+          setIsComplete(t.is_completed);
         }
       })
       .finally(() => setLoading(false));
@@ -74,7 +75,6 @@ const TaskDetail = () => {
         updateTask(taskId, { remark });
       }
     };
-     
   }, [id, intervalDays, remark]);
 
   // 通用自动保存（只用于即时保存的字段）
@@ -148,10 +148,10 @@ const TaskDetail = () => {
 
   const handleCompleteTask = async () => {
     if (isComplete) return;
-    await autoSave("is_completed", true)
+    await autoSave("is_completed", true);
     setIsComplete(true);
     showToast({ title: "任务已标记为完成", action: "success" });
-  }
+  };
 
   if (loading) return <Skeleton style={styles.container}></Skeleton>;
 
@@ -259,13 +259,16 @@ const TaskDetail = () => {
           mode={alarmAdded ? "contained" : "outlined"}
           icon="calendar"
           onPress={handleAddToCalendar}
-          className="mb-6"
         >
           {alarmAdded ? "已添加日历提醒" : "添加下一次任务日历提醒"}
         </Button>
         {/* 提交按钮 */}
-        <Button mode={isComplete ? "contained" : "outlined"} onPress={handleCompleteTask}>
-          完成任务
+        <Button
+          style={styles.submitBtn}
+          mode={isComplete ? "contained" : "outlined"}
+          onPress={handleCompleteTask}
+        >
+          {isComplete ? "已完成" : "标记为完成"}
         </Button>
       </View>
     </ThemedScrollView>
@@ -296,5 +299,8 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
     marginBottom: 8,
+  },
+  submitBtn: {
+    marginTop: 20,
   },
 });
