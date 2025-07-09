@@ -1,13 +1,13 @@
 import ThemedScrollView from "@/components/ThemedScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useTheme";
-import { useUserLocation } from "@/hooks/useUserLocation";
 import { deleteTask, getTaskList } from "@/src/api/task";
 import { getFutureWeather } from "@/src/api/weather";
 import { TASK_TYPES } from "@/src/constants/task";
 import { DurationType } from "@/src/types/task";
 import { getNextTaskDate } from "@/src/utils/task";
 import { Ionicons } from "@expo/vector-icons";
+import * as Location from 'expo-location';
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -29,12 +29,11 @@ export default function HomeScreen() {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
   const progress = 50; // TODO: 进度可根据任务完成度计算
-  const { location, errorMsg } = useUserLocation();
 
   useEffect(() => {
     setLoading(true);
-    getFutureWeather({location: '深圳'}).then((weatherRes: any) => {
-      console.log('weatherRes-->', weatherRes)
+    getFutureWeather({ location: "深圳" }).then((weatherRes: any) => {
+      console.log("weatherRes-->", weatherRes);
     });
     getTaskList()
       .then((res) => {
@@ -43,8 +42,22 @@ export default function HomeScreen() {
         }
       })
       .finally(() => setLoading(false));
-    console.log('location, errorMsg-->', location, errorMsg);
-
+   
+   (async () => {
+          let { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') {
+            // setErrorMsg('未获得位置权限');
+            return;
+          }
+          console.log('-------------------Highlight-----------------')
+          try {
+            let location = await Location.getCurrentPositionAsync({});
+            console.log('location-->', location)
+          } catch (error) {
+            console.log('error-->', error)
+          }
+        })();
+    // console.log("location, errorMsg-->", location, errorMsg);
   }, []);
 
   // 获取任务类型label
