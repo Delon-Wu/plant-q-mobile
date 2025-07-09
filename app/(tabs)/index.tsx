@@ -1,7 +1,9 @@
 import ThemedScrollView from "@/components/ThemedScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useTheme";
+import { useUserLocation } from "@/hooks/useUserLocation";
 import { deleteTask, getTaskList } from "@/src/api/task";
+import { getFutureWeather } from "@/src/api/weather";
 import { TASK_TYPES } from "@/src/constants/task";
 import { DurationType } from "@/src/types/task";
 import { getNextTaskDate } from "@/src/utils/task";
@@ -27,9 +29,13 @@ export default function HomeScreen() {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
   const progress = 50; // TODO: 进度可根据任务完成度计算
+  const { location, errorMsg } = useUserLocation();
 
   useEffect(() => {
     setLoading(true);
+    getFutureWeather({location: '深圳'}).then((weatherRes: any) => {
+      console.log('weatherRes-->', weatherRes)
+    });
     getTaskList()
       .then((res) => {
         if (res.data.code === 200) {
@@ -37,6 +43,8 @@ export default function HomeScreen() {
         }
       })
       .finally(() => setLoading(false));
+    console.log('location, errorMsg-->', location, errorMsg);
+
   }, []);
 
   // 获取任务类型label
