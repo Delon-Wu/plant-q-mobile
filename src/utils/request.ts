@@ -19,10 +19,10 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-enum WhiteList {
+export enum WhiteList {
   login = '/accounts/login',
   register = '/accounts/register',
-  refresh = '/accounts/refresh-token',
+  refresh = '/accounts/login/refresh',
 }
 const whiteList = Object.values(WhiteList);
 
@@ -33,7 +33,6 @@ apiClient.interceptors.request.use(
     if (host) {
       config.baseURL = host + '/api';
     }
-    console.log('config-->', config);
     if (whiteList.includes(config.url ?? '')) {
       return config;
     } else {
@@ -43,6 +42,7 @@ apiClient.interceptors.request.use(
         config.headers = { ...config.headers, Authorization: `Bearer ${userInfo.accessToken}` };
       }
     }
+    console.log('config-->', config);
     return config;
   },
   (error: unknown) => Promise.reject(error)
@@ -53,7 +53,7 @@ interface ErrorResponse {
   message?: string;
   data?: any;
 }
-
+let cont = 5;
 // 响应拦截器（可选）
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
@@ -65,7 +65,8 @@ apiClient.interceptors.response.use(
       console.log('Axios Error JSON:', error.toJSON());
     }
     if (error.status === 401) {
-      if (error.config?.url !== '/accounts/refresh-token') {
+      console.log('error-->', error);
+      if (error.config?.url !== WhiteList.refresh) {
         // 如果是401错误且不是刷新token的请求，则尝试刷新token
         const tokenToRefresh = store.getState().user.refreshToken || '';
         if (tokenToRefresh) {
