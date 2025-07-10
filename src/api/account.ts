@@ -1,8 +1,8 @@
-import request, { ApiResponse } from '@/src/utils/request'
+import request, { ApiResponse, WhiteList } from '@/src/utils/request'
 
 export async function login(email: string, password: string) {
   return request.post<ApiResponse<{ access: string, refresh: string }>>(
-    '/accounts/login',
+    WhiteList.login,
     {
       email,
       password,
@@ -19,9 +19,9 @@ export async function logout(refreshToken: string) {
 }
 
 export async function register(data: { email: string, password: string, password2: string, phone: string, username: string }) {
-  return request.post('/accounts/register', data)
+  return request.post(WhiteList.register, data)
 }
 
 export async function refreshToken(refreshToken: string) {
-  return request.post<ApiResponse<{access: string}>>('/accounts/login/refresh', { refresh: refreshToken })
+  return request.post<ApiResponse<{access: string}>>(WhiteList.refresh, { refresh: refreshToken })
 }

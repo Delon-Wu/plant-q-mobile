@@ -1,5 +1,5 @@
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import ThemedText from "@/components/ThemedText";
+import ThemedView from "@/components/ThemedView";
 import { logout } from "@/src/api/account";
 import { RootState } from "@/src/store";
 import { clearUserStore, selectIsLogin } from "@/src/store/userSlice";

@@ -1,5 +1,5 @@
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import ThemedText from "@/components/ThemedText";
+import ThemedView from "@/components/ThemedView";
 import { getUserInfo, login } from "@/src/api/account";
 import { setToken, setUserInfo } from "@/src/store/userSlice";
 import { router } from "expo-router";

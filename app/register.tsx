@@ -1,4 +1,4 @@
-import { ThemedView } from '@/components/ThemedView';
+import ThemedView from '@/components/ThemedView';
 import { register } from '@/src/api/account';
 import { router } from 'expo-router';
 import React, { useState } from 'react';

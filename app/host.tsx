@@ -1,5 +1,5 @@
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
+import ThemedText from "@/components/ThemedText";
+import ThemedView from "@/components/ThemedView";
 import { useState } from "react";
 import { Button, TextInput } from "react-native-paper";
 import { useDispatch, useSelector } from "react-redux";

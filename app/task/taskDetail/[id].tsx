@@ -1,7 +1,7 @@
 import DatePickerField from "@/components/DatePickerField";
 import Select from "@/components/Select";
 import ThemedScrollView from "@/components/ThemedScrollView";
-import { ThemedText } from "@/components/ThemedText";
+import ThemedText from "@/components/ThemedText";
 import customToast from "@/components/Toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";

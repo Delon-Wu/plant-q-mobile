@@ -1,5 +1,5 @@
 import ThemedScrollView from "@/components/ThemedScrollView";
-import { ThemedText } from "@/components/ThemedText";
+import ThemedText from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useTheme";
 import { deleteTask, getTaskList } from "@/src/api/task";
 import { getFutureWeather } from "@/src/api/weather";
