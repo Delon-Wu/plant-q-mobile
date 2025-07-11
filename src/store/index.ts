@@ -1,13 +1,16 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { configureStore } from '@reduxjs/toolkit';
+import { Platform } from 'react-native';
 import { persistReducer, persistStore } from 'redux-persist';
+import { SecureStoreStorage } from './secureStore';
 import settingsReducer from './settingsSlice';
 import userReducer from './userSlice';
 
 const persistConfig = {
   key: 'user',
-  storage: AsyncStorage,
+  storage: Platform.OS === "web" ? AsyncStorage : SecureStoreStorage,
   whitelist: ['name', 'email', 'phone', 'accessToken', 'refreshToken'],
+  keyPrefix: '',
 };
 
 const persistedUserReducer = persistReducer(persistConfig, userReducer);
