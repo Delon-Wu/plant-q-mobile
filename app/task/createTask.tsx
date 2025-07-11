@@ -30,9 +30,6 @@ const CreateTask = () => {
   const [startDate, setStartDate] = useState<Date | null>(new Date());
   const [endDate, setEndDate] = useState<Date | null>(new Date());
   const [onceDate, setOnceDate] = useState<Date | null>(new Date());
-  const [showStartPicker, setShowStartPicker] = useState(false);
-  const [showEndPicker, setShowEndPicker] = useState(false);
-  const [showOncePicker, setShowOncePicker] = useState(false);
   const [intervalDays, setIntervalDays] = useState("");
   const [remark, setRemark] = useState("");
   const [alarmAdded, setAlarmAdded] = useState(false);

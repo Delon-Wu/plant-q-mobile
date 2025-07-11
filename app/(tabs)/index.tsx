@@ -1,3 +1,4 @@
+import Tip from "@/components/CarouseTip";
 import ThemedScrollView from "@/components/ThemedScrollView";
 import ThemedText from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useTheme";
@@ -115,6 +116,7 @@ export default function HomeScreen() {
         {/* TODO: 结合最近天气显示对应养护提示 */}
         <Card>
           <Card.Content>
+            <Tip textStyle={{color: colors.tertiary}} tips={["请勿长时间不浇水", "请勿长时间不施肥", "请定时疏通", "请勿长时间不浇水2", "请勿长时间不施肥2", "请定时疏通2"]} />
             <Text
               variant="titleMedium"
               style={{ color: colors.primary, marginBottom: 10 }}

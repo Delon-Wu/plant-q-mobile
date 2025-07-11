@@ -12,8 +12,8 @@ export default function Me() {
   const userInfo = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch();
 
-  const handleLogout = () => {
-    logout(userInfo.refreshToken!);
+  const handleLogout = async () => {
+    await logout(userInfo.refreshToken!);
     dispatch(clearUserStore());
     router.replace("/login");
   };
