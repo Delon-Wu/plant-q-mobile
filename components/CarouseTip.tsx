@@ -22,23 +22,24 @@ interface TipProps {
 export default function CarouselTip({ tips, textStyle, duration: totalDuration }: TipProps) {
   const [index, setIndex] = useState(0);
   const opacity = useSharedValue(0);
+  const defaultDuration = 3000;
 
   // 当 index 改变时，触发淡入淡出动画
   useEffect(() => {
     // 动画：淡入 500ms -> 保持 2000ms -> 淡出 500ms
     opacity.value = withSequence(
       withTiming(1, { duration: 500 }),
-      withDelay((totalDuration ?? 3000) - 1000, withTiming(0, { duration: 500 }))
+      withDelay((totalDuration ?? defaultDuration) - 1000, withTiming(0, { duration: 500 }))
     );
-  }, [index, opacity]);
+  }, [index, opacity, totalDuration]);
 
   // 使用定时器每 3 秒切换一次提示
   useEffect(() => {
     const timer = setInterval(() => {
       setIndex((prev) => (prev + 1) % tips.length);
-    }, 3000);
+    }, totalDuration ?? defaultDuration);
     return () => clearInterval(timer);
-  }, [tips.length]);
+  }, [tips.length, totalDuration]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
