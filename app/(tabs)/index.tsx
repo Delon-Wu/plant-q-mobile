@@ -1,4 +1,4 @@
-import Tip from "@/components/CarouseTip";
+import CarouseTip from "@/components/CarouseTip";
 import ThemedScrollView from "@/components/ThemedScrollView";
 import ThemedText from "@/components/ThemedText";
 import { useThemeColor } from "@/hooks/useTheme";
@@ -30,6 +30,14 @@ export default function HomeScreen() {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [deleteId, setDeleteId] = useState<string | number | null>(null);
   const progress = 50; // TODO: 进度可根据任务完成度计算
+  const tips = [
+    '💡 定期给植物浇水，保持土壤湿润',
+    '🌱 选择适合的土壤和肥料',
+    '☀️ 确保植物获得充足的阳光',
+    '🌿 定期修剪枯萎的叶子',
+    '🕷️ 注意观察害虫和疾病'
+  ];
+
 
   useEffect(() => {
     setLoading(true);
@@ -114,21 +122,15 @@ export default function HomeScreen() {
         {/* TODO: 获取所在位置 */}
         {/* TODO: 获取天气信息 */}
         {/* TODO: 结合最近天气显示对应养护提示 */}
-        <Card>
+        <Card style={{backgroundColor: colors.primary}}>
           <Card.Content>
-            <Tip duration={10000} textStyle={{color: colors.tertiary}} tips={["请勿长时间不浇水", "请勿长时间不施肥", "请定时疏通", "请勿长时间不浇水2", "请勿长时间不施肥2", "请定时疏通2"]} />
-            <Text
-              variant="titleMedium"
-              style={{ color: colors.primary, marginBottom: 10 }}
-            >
-              {Information[progress]}
-            </Text>
-            <Text
-              variant="bodyMedium"
-              style={{ color: colors.text, marginBottom: 20 }}
-            >
-              今天的任务进度：{progress}%
-            </Text>
+            <CarouseTip
+              tips={tips}
+              textStyle={{color: colors.onPrimary, fontSize: 16}}
+              duration={3000}
+              animationDuration={500}
+              animationType="slideUp"
+            />
           </Card.Content>
         </Card>
 
