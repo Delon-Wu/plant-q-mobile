@@ -4,7 +4,7 @@
  */
 
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Colors } from '@/src/constants/Colors';
+import { Colors } from '@/src/constants/colors';
 import { MD3DarkTheme, MD3LightTheme } from 'react-native-paper';
 export function useThemeColor() {
   const theme = useColorScheme() ?? 'light';
