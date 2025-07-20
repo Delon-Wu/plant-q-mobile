@@ -1,6 +1,7 @@
 import CarouseTip from "@/components/CarouseTip";
 import ThemedScrollView from "@/components/ThemedScrollView";
 import ThemedText from "@/components/ThemedText";
+import WeatherSvg from "@/components/WeatherSvg";
 import { useThemeColor } from "@/hooks/useTheme";
 import { deleteTask, getTaskList } from "@/src/api/task";
 import { getFutureWeather } from "@/src/api/weather";
@@ -8,7 +9,7 @@ import { TASK_TYPES } from "@/src/constants/task";
 import { DurationType } from "@/src/types/task";
 import { getNextTaskDate } from "@/src/utils/task";
 import { Ionicons } from "@expo/vector-icons";
-import * as Location from 'expo-location';
+import * as Location from "expo-location";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
@@ -28,21 +29,24 @@ export default function HomeScreen() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
-  const [deleteId, setDeleteId] = useState<string | number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [threeDaysWeather, setThreeDaysWeather] = useState<any>(null);
   const progress = 50; // TODO: 进度可根据任务完成度计算
   const tips = [
-    '💡 定期给植物浇水，保持土壤湿润',
-    '🌱 选择适合的土壤和肥料',
-    '☀️ 确保植物获得充足的阳光',
-    '🌿 定期修剪枯萎的叶子',
-    '🕷️ 注意观察害虫和疾病'
+    "💡 定期给植物浇水，保持土壤湿润",
+    "🌱 选择适合的土壤和肥料",
+    "☀️ 确保植物获得充足的阳光",
+    "🌿 定期修剪枯萎的叶子",
+    "🕷️ 注意观察害虫和疾病",
   ];
-
 
   useEffect(() => {
     setLoading(true);
-    getFutureWeather({ location: "深圳" }).then((weatherRes: any) => {
+    getFutureWeather({ location: "深圳" }).then((weatherRes) => {
       console.log("weatherRes-->", weatherRes);
+      if (weatherRes.status === 200) {
+        setThreeDaysWeather(weatherRes.data.results[0] || null);
+      }
     });
     getTaskList()
       .then((res) => {
@@ -51,21 +55,21 @@ export default function HomeScreen() {
         }
       })
       .finally(() => setLoading(false));
-   
-   (async () => {
-          let { status } = await Location.requestForegroundPermissionsAsync();
-          if (status !== 'granted') {
-            // setErrorMsg('未获得位置权限');
-            return;
-          }
-          console.log('-------------------Highlight-----------------')
-          try {
-            let location = await Location.getCurrentPositionAsync({});
-            console.log('location-->', location)
-          } catch (error) {
-            console.log('error-->', error)
-          }
-        })();
+
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        // setErrorMsg('未获得位置权限');
+        return;
+      }
+      console.log("-------------------Highlight-----------------");
+      try {
+        let location = await Location.getCurrentPositionAsync({});
+        console.log("location-->", location);
+      } catch (error) {
+        console.log("error-->", error);
+      }
+    })();
     // console.log("location, errorMsg-->", location, errorMsg);
   }, []);
 
@@ -97,7 +101,7 @@ export default function HomeScreen() {
   };
 
   const handleLongPress = (id: string | number) => {
-    setDeleteId(id);
+    setDeleteId(String(id));
     setDialogVisible(true);
   };
 
@@ -122,15 +126,20 @@ export default function HomeScreen() {
         {/* TODO: 获取所在位置 */}
         {/* TODO: 获取天气信息 */}
         {/* TODO: 结合最近天气显示对应养护提示 */}
-        <Card style={{backgroundColor: colors.primary}}>
+        <Card style={{ backgroundColor: colors.primary }}>
           <Card.Content>
-            <CarouseTip
-              tips={tips}
-              textStyle={{color: colors.onPrimary, fontSize: 16}}
-              duration={3000}
-              animationDuration={500}
-              animationType="slideUp"
-            />
+            <WeatherSvg code={threeDaysWeather?.daily?.[0].code_day} width={40} height={40} />
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <View style={{ flex: 1 }}>
+                <CarouseTip
+                  tips={tips}
+                  textStyle={{ color: colors.onPrimary, fontSize: 16 }}
+                  duration={8000}
+                  animationDuration={500}
+                  animationType="slideUp"
+                />
+              </View>
+            </View>
           </Card.Content>
         </Card>
 

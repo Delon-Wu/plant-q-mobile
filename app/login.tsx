@@ -39,7 +39,7 @@ export default function Login() {
               phone: data.phone,
             })
           );
-          router.push("/");
+          router.replace("/");
         });
       });
   };

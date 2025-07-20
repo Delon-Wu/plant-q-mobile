@@ -1,7 +1,7 @@
 import request, { ApiResponse } from '@/src/utils/request';
 import { DurationType } from '../types/task';
 
-type TaskID = TaskID;
+type TaskID = string;
 interface TaskInfo {
   "id": TaskID;
   "user": number;
