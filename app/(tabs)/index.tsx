@@ -3,17 +3,23 @@ import ThemedScrollView from "@/components/ThemedScrollView";
 import ThemedText from "@/components/ThemedText";
 import WeatherSvg from "@/components/WeatherSvg";
 import { useThemeColor } from "@/hooks/useTheme";
+import { useUserLocation } from "@/hooks/useUserLocation";
 import { deleteTask, getTaskList } from "@/src/api/task";
 import { getFutureWeather } from "@/src/api/weather";
 import { TASK_TYPES } from "@/src/constants/task";
+import { RootState } from "@/src/store";
 import { DurationType } from "@/src/types/task";
+import { isDaytime } from "@/src/utils/common";
 import { getNextTaskDate } from "@/src/utils/task";
 import { Ionicons } from "@expo/vector-icons";
-import * as Location from "expo-location";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Button, Card, Dialog, FAB, Portal, Text } from "react-native-paper";
+import { useSelector } from "react-redux";
+import HumiditySvg from "../../assets/images/humidity.svg";
+import TemperatureSvg from "../../assets/images/temperature.svg";
+import WindLevelSvg from "../../assets/images/windLevel.svg";
 
 const Information = {
   0: "快开始今天的任务吧！",
@@ -31,23 +37,20 @@ export default function HomeScreen() {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [threeDaysWeather, setThreeDaysWeather] = useState<any>(null);
-  const progress = 50; // TODO: 进度可根据任务完成度计算
+  const [weatherLocation, setWeatherLocation] = useState<any>(null);
+  const { location } = useUserLocation();
+  const userInfo = useSelector((state: RootState) => state.user);
+  const isDaytimeNow = isDaytime();
   const tips = [
-    "💡 定期给植物浇水，保持土壤湿润",
-    "🌱 选择适合的土壤和肥料",
-    "☀️ 确保植物获得充足的阳光",
-    "🌿 定期修剪枯萎的叶子",
-    "🕷️ 注意观察害虫和疾病",
+    "hello world!",
+    "定期给植物浇水，保持土壤湿润",
+    "选择适合的土壤和肥料",
+    "确保植物获得充足的阳光",
+    "定期修剪枯萎的叶子",
+    "注意观察害虫和疾病",
   ];
 
   useEffect(() => {
-    setLoading(true);
-    getFutureWeather({ location: "深圳" }).then((weatherRes) => {
-      console.log("weatherRes-->", weatherRes);
-      if (weatherRes.status === 200) {
-        setThreeDaysWeather(weatherRes.data.results[0] || null);
-      }
-    });
     getTaskList()
       .then((res) => {
         if (res.data.code === 200) {
@@ -55,23 +58,33 @@ export default function HomeScreen() {
         }
       })
       .finally(() => setLoading(false));
-
-    (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        // setErrorMsg('未获得位置权限');
-        return;
-      }
-      console.log("-------------------Highlight-----------------");
-      try {
-        let location = await Location.getCurrentPositionAsync({});
-        console.log("location-->", location);
-      } catch (error) {
-        console.log("error-->", error);
-      }
-    })();
-    // console.log("location, errorMsg-->", location, errorMsg);
   }, []);
+
+  useEffect(() => {
+    console.log("location-->", location);
+    if (location) {
+      _getFutureWeather(
+        `${location.coords.latitude}:${location.coords.longitude}`
+      );
+    } else if (userInfo.position.latitude && userInfo.position.longitude) {
+      _getFutureWeather(
+        `${userInfo.position.latitude}:${userInfo.position.longitude}`
+      );
+    } else if (process.env.NODE_ENV === "development") {
+      // 开发环境使用默认位置
+      _getFutureWeather("深圳");
+    }
+  }, [location, userInfo.position.latitude, userInfo.position.longitude]);
+
+  const _getFutureWeather = async (location: string) => {
+    setLoading(true);
+    const weatherRes = await getFutureWeather({ location });
+    setLoading(false);
+    if (weatherRes.status === 200) {
+      setThreeDaysWeather(weatherRes.data.results[0]?.daily || null);
+      setWeatherLocation(weatherRes.data.results[0]?.location);
+    }
+  };
 
   // 获取任务类型label
   const getTaskTypeLabel = (type: string) => {
@@ -128,17 +141,78 @@ export default function HomeScreen() {
         {/* TODO: 结合最近天气显示对应养护提示 */}
         <Card style={{ backgroundColor: colors.primary }}>
           <Card.Content>
-            <WeatherSvg code={threeDaysWeather?.daily?.[0].code_day} width={40} height={40} />
-            <View style={{ flexDirection: "row", alignItems: "center" }}>
-              <View style={{ flex: 1 }}>
-                <CarouseTip
-                  tips={tips}
-                  textStyle={{ color: colors.onPrimary, fontSize: 16 }}
-                  duration={8000}
-                  animationDuration={500}
-                  animationType="slideUp"
+            {threeDaysWeather && threeDaysWeather.length > 0 && (
+              <View>
+                <WeatherSvg
+                  code={threeDaysWeather[0].code_day}
+                  width={130}
+                  height={130}
+                  style={styles.weatherIcon}
                 />
+                <View style={{ marginLeft: 130 }}>
+                  <Text
+                    variant="headlineMedium"
+                    style={{ color: colors.onPrimary }}
+                  >
+                    {weatherLocation?.name}
+                  </Text>
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Text
+                      style={{ marginRight: 8, color: colors.onPrimary }}
+                      variant="bodySmall"
+                    >
+                      {isDaytimeNow
+                        ? threeDaysWeather[0].text_day
+                        : threeDaysWeather[0].text_night}
+                    </Text>
+                    <View style={styles.parameter}>
+                      <TemperatureSvg width={16} height={16} />
+                      <Text
+                        variant="bodySmall"
+                        style={{ color: colors.onPrimary }}
+                      >
+                        {threeDaysWeather[0].high}°C /{" "}
+                        {threeDaysWeather[0].low}°C
+                      </Text>
+                    </View>
+                    <View style={styles.parameter}>
+                      <HumiditySvg width={12} height={12} />
+                      <Text
+                        variant="bodySmall"
+                        style={{ color: colors.onPrimary }}
+                      >
+                        {threeDaysWeather[0].humidity}%
+                      </Text>
+                    </View>
+                    {threeDaysWeather[0].wind_scale > 4 && (
+                      <View style={styles.parameter}>
+                        <WindLevelSvg width={12} height={12} />
+                        <Text
+                          variant="bodySmall"
+                          style={{ color: colors.onPrimary }}
+                        >
+                          {threeDaysWeather[0].wind_scale} 级
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
               </View>
+            )}
+            <View style={{ flexDirection: "row", marginTop: 10 }}>
+              <CarouseTip
+                tips={tips}
+                textStyle={{ color: colors.onPrimary, fontSize: 16 }}
+                duration={8000}
+                animationDuration={500}
+                animationType="slideUp"
+              />
             </View>
           </Card.Content>
         </Card>
@@ -258,6 +332,10 @@ const styles = StyleSheet.create({
     width: "100%",
     marginBottom: 20,
   },
+  weatherIcon: {
+    position: "absolute",
+    top: -60,
+  },
   fab: {
     position: "absolute",
     right: 24,
@@ -284,5 +362,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 2,
     marginRight: 4,
+  },
+  parameter: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 8,
   },
 });

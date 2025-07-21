@@ -6,7 +6,10 @@ interface UserState {
   phone: string;
   accessToken?: string; // 可选字段
   refreshToken?: string; // 可选字段
-  // 可以根据需要添加更多用户信息字段
+  position: {
+    latitude: number | null;
+    longitude: number | null;
+  };
 }
 
 const initialState: UserState = {
@@ -15,6 +18,7 @@ const initialState: UserState = {
   phone: '',
   accessToken: '',
   refreshToken: '',
+  position: { latitude: null, longitude: null },
 };
 
 const userSlice = createSlice({
@@ -36,6 +40,11 @@ const userSlice = createSlice({
       state.phone = '';
       state.accessToken = '';
       state.refreshToken = '';
+      state.position = { latitude: null, longitude: null };
+    },
+    setPosition(state, action: PayloadAction<{ latitude: number | null; longitude: number | null }>) {
+      state.position.latitude = action.payload.latitude;
+      state.position.longitude = action.payload.longitude;
     },
   },
 });

@@ -14,6 +14,36 @@ export function getCurrentSeason(date: Date | number): Season {
   return Season.winter;                              // 冬季：11-2月
 }
 
+/**
+ * 判断当前是白天还是黑夜
+ * @param date Date对象或时间戳（毫秒），默认为当前时间
+ * @returns 布尔值，true表示白天，false表示黑夜
+ */
+export function isDaytime(date?: Date | number): boolean {
+  const targetDate = date ? (date instanceof Date ? date : new Date(date)) : new Date();
+  const hours = targetDate.getHours();
+  
+  // 通常定义：6:00-18:00为白天，18:00-6:00为黑夜
+  return hours >= 6 && hours < 18;
+}
+
+/**
+ * 获取当前时间段描述
+ * @param date Date对象或时间戳（毫秒），默认为当前时间
+ * @returns 时间段描述：dawn(黎明), morning(上午), noon(中午), afternoon(下午), evening(傍晚), night(夜晚)
+ */
+export function getTimeOfDay(date?: Date | number): 'dawn' | 'morning' | 'noon' | 'afternoon' | 'evening' | 'night' {
+  const targetDate = date ? (date instanceof Date ? date : new Date(date)) : new Date();
+  const hours = targetDate.getHours();
+  
+  if (hours >= 5 && hours < 6) return 'dawn';        // 黎明：5-6点
+  if (hours >= 6 && hours < 12) return 'morning';    // 上午：6-12点
+  if (hours >= 12 && hours < 13) return 'noon';      // 中午：12-13点
+  if (hours >= 13 && hours < 18) return 'afternoon'; // 下午：13-18点
+  if (hours >= 18 && hours < 20) return 'evening';   // 傍晚：18-20点
+  return 'night';                                     // 夜晚：20-5点
+}
+
 
 // 假设的植物养护规则数据（需要根据实际情况定义）
 declare const plant_care_rules: PlantRule[];
@@ -233,3 +263,4 @@ function evaluateCondition(condition: string, context: Record<string, any>): boo
     return false;
   }
 }
+

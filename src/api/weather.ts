@@ -1,7 +1,7 @@
 import axios from "axios";
 
 export async function getFutureWeather(params: {
-  location: string;
+  location: string; // 形式为 "纬度:经度" 或 "城市名"
   unit?: string;
   start?: number;
   days?: number;
