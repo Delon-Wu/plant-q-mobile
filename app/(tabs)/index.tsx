@@ -164,12 +164,12 @@ export default function HomeScreen() {
                     }}
                   >
                     <Text
-                      style={{ marginRight: 8, color: colors.onPrimary }}
+                      style={{ marginRight: 4, color: colors.onPrimary }}
                       variant="bodySmall"
                     >
                       {isDaytimeNow
                         ? threeDaysWeather[0].text_day
-                        : threeDaysWeather[0].text_night}
+                        : threeDaysWeather[0].text_night} {Number(threeDaysWeather[0].precip) > 0 ? ` ${Number(threeDaysWeather[0].precip) * 100}%` : ""}
                     </Text>
                     <View style={styles.parameter}>
                       <TemperatureSvg width={16} height={16} />
@@ -177,8 +177,8 @@ export default function HomeScreen() {
                         variant="bodySmall"
                         style={{ color: colors.onPrimary }}
                       >
-                        {threeDaysWeather[0].high}°C /{" "}
-                        {threeDaysWeather[0].low}°C
+                        {threeDaysWeather[0].low}°C /{" "}
+                        {threeDaysWeather[0].high}°C
                       </Text>
                     </View>
                     <View style={styles.parameter}>
@@ -366,6 +366,6 @@ const styles = StyleSheet.create({
   parameter: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 8,
+    marginRight: 4,
   },
 });
