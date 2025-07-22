@@ -29,9 +29,33 @@ export interface ForecastDay {
 // 植物规则接口
 export interface PlantRule {
   plant_type: string;
+  examples: string[];
+  ideal_conditions: {
+    temperature: {
+      min: number;
+      max: number;
+      ideal: number;
+    };
+    humidity: {
+      min: number;
+      max: number;
+      ideal: number;
+    };
+    light: {
+      min: number;
+      max: number;
+      ideal: number;
+    };
+    watering: {
+      dry_days: number;
+      wet_days: number;
+    };
+  };
   tolerance_limits: {
     min_temp: number;
     max_temp: number;
+    min_humidity: number;
+    max_humidity: number;
   };
   care_rules: {
     temperature: CareRule[];
@@ -44,15 +68,19 @@ export interface PlantRule {
     [stage: string]: {
       watering?: string;
       fertilizing?: string;
+      temperature?: string;
     };
   };
 }
 
+
 export interface CareRule {
-  condition: string;
+  condition: CareRuleCondition;
   advice: string;
   priority: number;
 }
+
+export type CareRuleCondition = (envParam: any) => boolean;
 
 export interface SeasonalRule {
   season: string;

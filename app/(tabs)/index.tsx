@@ -5,7 +5,7 @@ import WeatherSvg from "@/components/WeatherSvg";
 import { useThemeColor } from "@/hooks/useTheme";
 import { useUserLocation } from "@/hooks/useUserLocation";
 import { deleteTask, getTaskList } from "@/src/api/task";
-import { getFutureWeather } from "@/src/api/weather";
+import { getCurrentWeather, getFutureWeather } from "@/src/api/weather";
 import { TASK_TYPES } from "@/src/constants/task";
 import { RootState } from "@/src/store";
 import { DurationType } from "@/src/types/task";
@@ -37,6 +37,7 @@ export default function HomeScreen() {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [threeDaysWeather, setThreeDaysWeather] = useState<any>(null);
+  const [currentWeather, setCurrentWeather] = useState<any>(null);
   const [weatherLocation, setWeatherLocation] = useState<any>(null);
   const { location } = useUserLocation();
   const userInfo = useSelector((state: RootState) => state.user);
@@ -78,11 +79,15 @@ export default function HomeScreen() {
 
   const _getFutureWeather = async (location: string) => {
     setLoading(true);
-    const weatherRes = await getFutureWeather({ location });
+    const weatherRes = await getCurrentWeather({ location });
+    const threeDaysWeatherRes = await getFutureWeather({ location });
     setLoading(false);
     if (weatherRes.status === 200) {
-      setThreeDaysWeather(weatherRes.data.results[0]?.daily || null);
-      setWeatherLocation(weatherRes.data.results[0]?.location);
+      setCurrentWeather(weatherRes.data.results[0]?.now || null);
+      setWeatherLocation(weatherRes.data.results[0]?.location); // 获取天气城市名称
+    }
+    if (threeDaysWeatherRes.status === 200) {
+      setThreeDaysWeather(threeDaysWeatherRes.data.results[0]?.daily || null);
     }
   };
 
@@ -136,15 +141,14 @@ export default function HomeScreen() {
   return (
     <>
       <ThemedScrollView>
-        {/* TODO: 获取所在位置 */}
-        {/* TODO: 获取天气信息 */}
         {/* TODO: 结合最近天气显示对应养护提示 */}
+        {/* TODO: 升级当前天气信息API之后，使用更准确的天气信息，避免使用天气预报的天气数据 */}
         <Card style={{ backgroundColor: colors.primary }}>
           <Card.Content>
-            {threeDaysWeather && threeDaysWeather.length > 0 && (
+            {currentWeather && (
               <View>
                 <WeatherSvg
-                  code={threeDaysWeather[0].code_day}
+                  code={currentWeather.code}
                   width={130}
                   height={130}
                   style={styles.weatherIcon}
@@ -167,12 +171,16 @@ export default function HomeScreen() {
                       style={{ marginRight: 4, color: colors.onPrimary }}
                       variant="bodySmall"
                     >
-                      {isDaytimeNow
-                        ? threeDaysWeather[0].text_day
-                        : threeDaysWeather[0].text_night} {Number(threeDaysWeather[0].precip) > 0 ? ` ${Number(threeDaysWeather[0].precip) * 100}%` : ""}
+                      {currentWeather.text} {Number(threeDaysWeather[0].precip) > 0 ? ` 今日${Number(threeDaysWeather[0].precip) * 100}%概率下雨` : ""}
                     </Text>
                     <View style={styles.parameter}>
                       <TemperatureSvg width={16} height={16} />
+                      <Text
+                        variant="bodySmall"
+                        style={{ color: colors.onPrimary }}
+                      >
+                        {currentWeather.temperature}°C{" "}
+                      </Text>
                       <Text
                         variant="bodySmall"
                         style={{ color: colors.onPrimary }}

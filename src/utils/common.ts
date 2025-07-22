@@ -22,7 +22,7 @@ export function getCurrentSeason(date: Date | number): Season {
 export function isDaytime(date?: Date | number): boolean {
   const targetDate = date ? (date instanceof Date ? date : new Date(date)) : new Date();
   const hours = targetDate.getHours();
-  
+
   // 通常定义：6:00-18:00为白天，18:00-6:00为黑夜
   return hours >= 6 && hours < 18;
 }
@@ -35,7 +35,7 @@ export function isDaytime(date?: Date | number): boolean {
 export function getTimeOfDay(date?: Date | number): 'dawn' | 'morning' | 'noon' | 'afternoon' | 'evening' | 'night' {
   const targetDate = date ? (date instanceof Date ? date : new Date(date)) : new Date();
   const hours = targetDate.getHours();
-  
+
   if (hours >= 5 && hours < 6) return 'dawn';        // 黎明：5-6点
   if (hours >= 6 && hours < 12) return 'morning';    // 上午：6-12点
   if (hours >= 12 && hours < 13) return 'noon';      // 中午：12-13点
@@ -76,7 +76,7 @@ export function generatePlantAdvice(weather_data: WeatherData, plant_type: strin
   const temp_rules = plant_rule.care_rules.temperature;
 
   for (const rule of temp_rules) {
-    if (evaluateCondition(rule.condition, {
+    if (rule.condition({
       temp,
       min_temp: plant_rule.tolerance_limits.min_temp
     })) {
@@ -93,7 +93,7 @@ export function generatePlantAdvice(weather_data: WeatherData, plant_type: strin
   const humidity_rules = plant_rule.care_rules.humidity || [];
 
   for (const rule of humidity_rules) {
-    if (evaluateCondition(rule.condition, { humidity })) {
+    if (rule.condition({ humidity })) {
       advice_list.push({
         advice: rule.advice,
         priority: rule.priority || 3,
@@ -115,7 +115,7 @@ export function generatePlantAdvice(weather_data: WeatherData, plant_type: strin
       temp,
       topsoil_dry: (weather_data.soil_moisture || 0) < 30 // 假设有土壤湿度数据
     };
-    if (evaluateCondition(rule.condition, context)) {
+    if (rule.condition(context)) {
       advice_list.push({
         advice: rule.advice,
         priority: rule.priority,
@@ -152,7 +152,7 @@ export function generatePlantAdvice(weather_data: WeatherData, plant_type: strin
       frequent_harvest: plant_type === "草本香草" && current_season === "summer",
       flowering: checkFloweringStage(plant_rule, weather_data) // 检查开花状态
     };
-    if (evaluateCondition(rule.condition, context)) {
+    if (rule.condition(context)) {
       advice_list.push({
         advice: rule.advice,
         priority: rule.priority || 2,
@@ -240,27 +240,5 @@ function checkPestAlert(weather_data: WeatherData): boolean {
 function checkFloweringStage(plant_rule: PlantRule, weather_data: WeatherData): boolean {
   // 实际实现需要根据具体植物类型和条件判断
   return false;
-}
-
-/**
- * 评估条件表达式（简化版本，实际可能需要更复杂的表达式解析器）
- */
-function evaluateCondition(condition: string, context: Record<string, any>): boolean {
-  // 这里需要实现一个安全的表达式评估器
-  // 为了安全起见，建议使用预定义的条件模式而不是动态执行代码
-  // 这是一个简化的示例实现
-  try {
-    // 替换变量
-    let evaluatedCondition = condition;
-    for (const [key, value] of Object.entries(context)) {
-      const regex = new RegExp(`\\b${key}\\b`, 'g');
-      evaluatedCondition = evaluatedCondition.replace(regex, String(value));
-    }
-
-    // 简单的条件评估（实际项目中需要更安全的实现）
-    return new Function('return ' + evaluatedCondition)();
-  } catch {
-    return false;
-  }
 }
 
