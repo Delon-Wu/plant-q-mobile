@@ -73,6 +73,13 @@ export interface PlantRule {
   };
 }
 
+export enum PlantType {
+  herb = '草本香草',
+  leafy = '观叶植物',
+  flowering = '开花植物',
+  succulent = '多肉植物',
+  vegetable = '蔬菜类',
+}
 
 export interface CareRule {
   condition: CareRuleCondition;
