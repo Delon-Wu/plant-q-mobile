@@ -64,20 +64,20 @@ export default function HomeScreen() {
   useEffect(() => {
     console.log("location-->", location);
     if (location) {
-      _getFutureWeather(
+      getWeatherData(
         `${location.coords.latitude}:${location.coords.longitude}`
       );
     } else if (userInfo.position.latitude && userInfo.position.longitude) {
-      _getFutureWeather(
+      getWeatherData(
         `${userInfo.position.latitude}:${userInfo.position.longitude}`
       );
     } else if (process.env.NODE_ENV === "development") {
       // 开发环境使用默认位置
-      _getFutureWeather("深圳");
+      getWeatherData("深圳");
     }
   }, [location, userInfo.position.latitude, userInfo.position.longitude]);
 
-  const _getFutureWeather = async (location: string) => {
+  const getWeatherData = async (location: string) => {
     setLoading(true);
     const weatherRes = await getCurrentWeather({ location });
     const threeDaysWeatherRes = await getFutureWeather({ location });
