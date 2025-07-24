@@ -9,7 +9,7 @@ import { getCurrentWeather, getFutureWeather } from "@/src/api/weather";
 import { TASK_TYPES } from "@/src/constants/task";
 import { RootState } from "@/src/store";
 import { DurationType } from "@/src/types/task";
-import { isDaytime } from "@/src/utils/common";
+import { generatePlantAdvice, getSeasonAdvice } from "@/src/utils/common";
 import { getNextTaskDate } from "@/src/utils/task";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -41,15 +41,7 @@ export default function HomeScreen() {
   const [weatherLocation, setWeatherLocation] = useState<any>(null);
   const { location } = useUserLocation();
   const userInfo = useSelector((state: RootState) => state.user);
-  const isDaytimeNow = isDaytime();
-  const tips = [
-    "hello world!",
-    "定期给植物浇水，保持土壤湿润",
-    "选择适合的土壤和肥料",
-    "确保植物获得充足的阳光",
-    "定期修剪枯萎的叶子",
-    "注意观察害虫和疾病",
-  ];
+  const [advices, setAdvices] = useState<string[]>([]);
 
   useEffect(() => {
     getTaskList()
@@ -75,7 +67,7 @@ export default function HomeScreen() {
       // 开发环境使用默认位置
       getWeatherData("深圳");
     }
-  }, [location, userInfo.position.latitude, userInfo.position.longitude]);
+  }, [location]);
 
   const getWeatherData = async (location: string) => {
     setLoading(true);
@@ -88,6 +80,25 @@ export default function HomeScreen() {
     }
     if (threeDaysWeatherRes.status === 200) {
       setThreeDaysWeather(threeDaysWeatherRes.data.results[0]?.daily || null);
+      if (threeDaysWeather) {
+        const advices = generatePlantAdvice({
+          condition: threeDaysWeather[0].text,
+          temperature: currentWeather?.temperature,
+          humidity: threeDaysWeather[0]?.humidity,
+          precipitation: threeDaysWeather[0].precip,
+          wind_speed: threeDaysWeather[0].wind_speed,
+          forecast: threeDaysWeather.map((day: any) => ({
+            condition: day.text_day,
+            min_temp: day.low,
+            max_temp: day.high,
+          })),
+          date: new Date(),
+        });
+        console.log("advices-->", advices);
+        setAdvices(advices);
+      } else {
+        setAdvices(getSeasonAdvice());
+      }
     }
   };
 
@@ -143,7 +154,7 @@ export default function HomeScreen() {
       <ThemedScrollView>
         {/* TODO: 结合最近天气显示对应养护提示 */}
         {/* TODO: 升级当前天气信息API之后，使用更准确的天气信息，避免使用天气预报的天气数据 */}
-        <Card style={{ backgroundColor: colors.primary }}>
+        <Card style={{ backgroundColor: colors.primary, minHeight: 200 }}>
           <Card.Content>
             {currentWeather && (
               <View>
@@ -171,7 +182,12 @@ export default function HomeScreen() {
                       style={{ marginRight: 4, color: colors.onPrimary }}
                       variant="bodySmall"
                     >
-                      {currentWeather.text} {Number(threeDaysWeather[0].precip) > 0 ? ` 今日${Number(threeDaysWeather[0].precip) * 100}%概率下雨` : ""}
+                      {currentWeather.text}{" "}
+                      {Number(threeDaysWeather[0].precip) > 0
+                        ? ` 今日${
+                            Number(threeDaysWeather[0].precip) * 100
+                          }%概率下雨`
+                        : ""}
                     </Text>
                     <View style={styles.parameter}>
                       <TemperatureSvg width={16} height={16} />
@@ -185,8 +201,8 @@ export default function HomeScreen() {
                         variant="bodySmall"
                         style={{ color: colors.onPrimary }}
                       >
-                        {threeDaysWeather[0].low}°C /{" "}
-                        {threeDaysWeather[0].high}°C
+                        {threeDaysWeather[0].low}°C / {threeDaysWeather[0].high}
+                        °C
                       </Text>
                     </View>
                     <View style={styles.parameter}>
@@ -213,9 +229,12 @@ export default function HomeScreen() {
                 </View>
               </View>
             )}
+            <Text variant="titleMedium" style={{ color: colors.onPrimary, marginTop: 14 }}>
+              养护小贴士：
+            </Text>
             <View style={{ flexDirection: "row", marginTop: 10 }}>
               <CarouseTip
-                tips={tips}
+                tips={advices}
                 textStyle={{ color: colors.onPrimary, fontSize: 16 }}
                 duration={8000}
                 animationDuration={500}

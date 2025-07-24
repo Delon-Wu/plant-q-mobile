@@ -1,16 +1,29 @@
+import { isDaytime } from "@/src/utils/common";
 import React from "react";
 import { View, ViewStyle } from "react-native";
 
 // 天气图标类型定义
 type WeatherIcon = {
-  default: React.ComponentType<{ width?: number; height?: number; style?: any }>;
+  default: React.ComponentType<{
+    width?: number;
+    height?: number;
+    style?: any;
+  }>;
 };
 
 // 天气信息类型定义
 interface WeatherInfo {
   icon: WeatherIcon;
   description: string;
-  category: 'clear' | 'cloudy' | 'rain' | 'snow' | 'storm' | 'wind' | 'dust' | 'unknown';
+  category:
+    | "clear"
+    | "cloudy"
+    | "rain"
+    | "snow"
+    | "storm"
+    | "wind"
+    | "dust"
+    | "unknown";
   dayIcon?: WeatherIcon; // 可选白天图标
   nightIcon?: WeatherIcon; // 可选夜间图标
 }
@@ -37,46 +50,132 @@ const weatherIcons = {
 
 // 天气代码与图标映射
 const seniverseWeatherCodeMap: Record<string, WeatherInfo> = {
-  "0": { icon: weatherIcons.sun, nightIcon: weatherIcons.moon, description: "晴", category: 'clear' },
-  "1": { icon: weatherIcons.sun, nightIcon: weatherIcons.moon, description: "晴", category: 'clear' },
-  "2": { icon: weatherIcons.sun, nightIcon: weatherIcons.moon, description: "晴", category: 'clear' },
-  "3": { icon: weatherIcons.sun, nightIcon: weatherIcons.moon, description: "晴", category: 'clear' },
-  "4": { icon: weatherIcons.cloud, nightIcon: weatherIcons.cloudNight, description: "多云", category: 'cloudy' },
-  "5": { icon: weatherIcons.partialCloud, nightIcon: weatherIcons.cloudNight, description: "晴间多云", category: 'cloudy' },
-  "6": { icon: weatherIcons.partialCloud, nightIcon: weatherIcons.cloudNight, description: "晴间多云", category: 'cloudy' },
-  "7": { icon: weatherIcons.mostlyCloud, nightIcon: weatherIcons.cloudNight, description: "大部多云", category: 'cloudy' },
-  "8": { icon: weatherIcons.mostlyCloud, nightIcon: weatherIcons.cloudNight, description: "大部多云", category: 'cloudy' },
-  "9": { icon: weatherIcons.mostlyCloud, nightIcon: weatherIcons.cloudNight, description: "阴", category: 'cloudy' },
-  "10": { icon: weatherIcons.rain, description: "阵雨", category: 'rain' },
-  "11": { icon: weatherIcons.thunder, description: "雷阵雨", category: 'storm' },
-  "12": { icon: weatherIcons.thunderstorm, description: "雷阵雨伴有冰雹", category: 'storm' },
-  "13": { icon: weatherIcons.rain, description: "小雨", category: 'rain' },
-  "14": { icon: weatherIcons.rain, description: "中雨", category: 'rain' },
-  "15": { icon: weatherIcons.heavyRain, description: "大雨", category: 'rain' },
-  "16": { icon: weatherIcons.heavyRain, description: "暴雨", category: 'rain' },
-  "17": { icon: weatherIcons.heavyRain, description: "大暴雨", category: 'rain' },
-  "18": { icon: weatherIcons.heavyRain, description: "特大暴雨", category: 'rain' },
-  "19": { icon: weatherIcons.drop, description: "冻雨", category: 'rain' },
-  "20": { icon: weatherIcons.snow, description: "雨夹雪", category: 'snow' },
-  "21": { icon: weatherIcons.snow, description: "阵雪", category: 'snow' },
-  "22": { icon: weatherIcons.snow, description: "小雪", category: 'snow' },
-  "23": { icon: weatherIcons.snow, description: "中雪", category: 'snow' },
-  "24": { icon: weatherIcons.heavySnowfall, description: "大雪", category: 'snow' },
-  "25": { icon: weatherIcons.heavySnowfall, description: "暴雪", category: 'snow' },
-  "26": { icon: weatherIcons.cloud, description: "浮尘", category: 'dust' },
-  "27": { icon: weatherIcons.cloud, description: "扬沙", category: 'dust' },
-  "28": { icon: weatherIcons.cloud, description: "沙尘暴", category: 'dust' },
-  "29": { icon: weatherIcons.cloud, description: "强沙尘暴", category: 'dust' },
-  "30": { icon: weatherIcons.cloud, description: "雾", category: 'cloudy' },
-  "31": { icon: weatherIcons.cloud, description: "霾", category: 'dust' },
-  "32": { icon: weatherIcons.heavyWind, description: "风", category: 'wind' },
-  "33": { icon: weatherIcons.heavyWind, description: "大风", category: 'wind' },
-  "34": { icon: weatherIcons.thunderstorm, description: "飓风", category: 'storm' },
-  "35": { icon: weatherIcons.thunderstorm, description: "热带风暴", category: 'storm' },
-  "36": { icon: weatherIcons.thunderstorm, description: "龙卷风", category: 'storm' },
-  "37": { icon: weatherIcons.cloud, description: "冷", category: 'unknown' },
-  "38": { icon: weatherIcons.cloud, description: "热", category: 'unknown' },
-  "99": { icon: weatherIcons.cloud, description: "未知", category: 'unknown' },
+  "0": {
+    icon: weatherIcons.sun,
+    nightIcon: weatherIcons.moon,
+    description: "晴",
+    category: "clear",
+  },
+  "1": {
+    icon: weatherIcons.sun,
+    nightIcon: weatherIcons.moon,
+    description: "晴",
+    category: "clear",
+  },
+  "2": {
+    icon: weatherIcons.sun,
+    nightIcon: weatherIcons.moon,
+    description: "晴",
+    category: "clear",
+  },
+  "3": {
+    icon: weatherIcons.sun,
+    nightIcon: weatherIcons.moon,
+    description: "晴",
+    category: "clear",
+  },
+  "4": {
+    icon: weatherIcons.cloud,
+    nightIcon: weatherIcons.cloudNight,
+    description: "多云",
+    category: "cloudy",
+  },
+  "5": {
+    icon: weatherIcons.partialCloud,
+    nightIcon: weatherIcons.cloudNight,
+    description: "晴间多云",
+    category: "cloudy",
+  },
+  "6": {
+    icon: weatherIcons.partialCloud,
+    nightIcon: weatherIcons.cloudNight,
+    description: "晴间多云",
+    category: "cloudy",
+  },
+  "7": {
+    icon: weatherIcons.mostlyCloud,
+    nightIcon: weatherIcons.cloudNight,
+    description: "大部多云",
+    category: "cloudy",
+  },
+  "8": {
+    icon: weatherIcons.mostlyCloud,
+    nightIcon: weatherIcons.cloudNight,
+    description: "大部多云",
+    category: "cloudy",
+  },
+  "9": {
+    icon: weatherIcons.mostlyCloud,
+    nightIcon: weatherIcons.cloudNight,
+    description: "阴",
+    category: "cloudy",
+  },
+  "10": { icon: weatherIcons.rain, description: "阵雨", category: "rain" },
+  "11": {
+    icon: weatherIcons.thunder,
+    description: "雷阵雨",
+    category: "storm",
+  },
+  "12": {
+    icon: weatherIcons.thunderstorm,
+    description: "雷阵雨伴有冰雹",
+    category: "storm",
+  },
+  "13": { icon: weatherIcons.rain, description: "小雨", category: "rain" },
+  "14": { icon: weatherIcons.rain, description: "中雨", category: "rain" },
+  "15": { icon: weatherIcons.heavyRain, description: "大雨", category: "rain" },
+  "16": { icon: weatherIcons.heavyRain, description: "暴雨", category: "rain" },
+  "17": {
+    icon: weatherIcons.heavyRain,
+    description: "大暴雨",
+    category: "rain",
+  },
+  "18": {
+    icon: weatherIcons.heavyRain,
+    description: "特大暴雨",
+    category: "rain",
+  },
+  "19": { icon: weatherIcons.drop, description: "冻雨", category: "rain" },
+  "20": { icon: weatherIcons.snow, description: "雨夹雪", category: "snow" },
+  "21": { icon: weatherIcons.snow, description: "阵雪", category: "snow" },
+  "22": { icon: weatherIcons.snow, description: "小雪", category: "snow" },
+  "23": { icon: weatherIcons.snow, description: "中雪", category: "snow" },
+  "24": {
+    icon: weatherIcons.heavySnowfall,
+    description: "大雪",
+    category: "snow",
+  },
+  "25": {
+    icon: weatherIcons.heavySnowfall,
+    description: "暴雪",
+    category: "snow",
+  },
+  "26": { icon: weatherIcons.cloud, description: "浮尘", category: "dust" },
+  "27": { icon: weatherIcons.cloud, description: "扬沙", category: "dust" },
+  "28": { icon: weatherIcons.cloud, description: "沙尘暴", category: "dust" },
+  "29": { icon: weatherIcons.cloud, description: "强沙尘暴", category: "dust" },
+  "30": { icon: weatherIcons.cloud, description: "雾", category: "cloudy" },
+  "31": { icon: weatherIcons.cloud, description: "霾", category: "dust" },
+  "32": { icon: weatherIcons.heavyWind, description: "风", category: "wind" },
+  "33": { icon: weatherIcons.heavyWind, description: "大风", category: "wind" },
+  "34": {
+    icon: weatherIcons.thunderstorm,
+    description: "飓风",
+    category: "storm",
+  },
+  "35": {
+    icon: weatherIcons.thunderstorm,
+    description: "热带风暴",
+    category: "storm",
+  },
+  "36": {
+    icon: weatherIcons.thunderstorm,
+    description: "龙卷风",
+    category: "storm",
+  },
+  "37": { icon: weatherIcons.cloud, description: "冷", category: "unknown" },
+  "38": { icon: weatherIcons.cloud, description: "热", category: "unknown" },
+  "99": { icon: weatherIcons.cloud, description: "未知", category: "unknown" },
 };
 
 export interface WeatherSvgProps {
@@ -113,36 +212,35 @@ const WeatherSvg: React.FC<WeatherSvgProps> = ({
   showDescription = false,
 }) => {
   const weatherInfo = getWeatherInfo(code);
-  
+  const _isDaytime = isDaytime(new Date());
+
   // 获取 SVG 组件
-  const SvgIcon = weatherInfo.icon?.default || weatherInfo.icon;
-  
+  const SvgIcon = _isDaytime
+    ? weatherInfo.icon?.default || weatherInfo.icon
+    : weatherInfo.nightIcon?.default ||
+      weatherInfo.icon?.default ||
+      weatherInfo.icon;
+
   if (!SvgIcon) {
     // 降级显示：如果图标无法加载，显示占位符
     return (
-      <View 
+      <View
         style={[
-          { 
-            width, 
-            height, 
+          {
+            width,
+            height,
             backgroundColor: "#f0f0f0",
             borderRadius: 4,
-            justifyContent: 'center',
-            alignItems: 'center',
-          }, 
-          style
-        ]} 
+            justifyContent: "center",
+            alignItems: "center",
+          },
+          style,
+        ]}
       />
     );
   }
 
-  return (
-    <SvgIcon 
-      width={width} 
-      height={height} 
-      style={style}
-    />
-  );
+  return <SvgIcon width={width} height={height} style={style} />;
 };
 
 /**
@@ -159,7 +257,7 @@ export const getWeatherDescription = (code: string): string => {
  * @param code 天气代码
  * @returns 天气类别
  */
-export const getWeatherCategory = (code: string): WeatherInfo['category'] => {
+export const getWeatherCategory = (code: string): WeatherInfo["category"] => {
   return getWeatherInfo(code).category;
 };
 

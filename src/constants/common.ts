@@ -1,4 +1,4 @@
-import { PlantRule } from "../types/common";
+import { PlantRule, PlantType, Season } from "../types/common";
 
 export const SENIVERSE_WEATHER_CODE_MAP: Record<string, string> = {
   "0": "晴",
@@ -46,7 +46,7 @@ export const SENIVERSE_WEATHER_CODE_MAP: Record<string, string> = {
 // 植物养护规则库
 export const PLANT_CARE_RULES: PlantRule[] = [
   {
-    "plant_type": "多肉植物",
+    "plant_type": PlantType.succulent,
     "examples": ["仙人掌", "景天", "生石花", "芦荟"],
     "ideal_conditions": {
       "temperature": { "min": 10, "max": 30, "ideal": 22 },
@@ -77,14 +77,14 @@ export const PLANT_CARE_RULES: PlantRule[] = [
         { "condition": (envParam: { temp: number }) => envParam.temp > 30, "advice": "清晨或傍晚少量浇水", "priority": 2 }
       ],
       "seasonal": [
-        { "season": "spring", "advice": "开始增加浇水频率" },
-        { "season": "summer", "advice": "避免正午浇水，注意通风" },
-        { "season": "autumn", "advice": "逐渐减少浇水，准备越冬" },
-        { "season": "winter", "advice": "保持土壤干燥，每月浇水1次" }
+        { "season": Season.spring, "advice": "开始增加浇水频率" },
+        { "season": Season.summer, "advice": "避免正午浇水，注意通风" },
+        { "season": Season.autumn, "advice": "逐渐减少浇水，准备越冬" },
+        { "season": Season.winter, "advice": "保持土壤干燥，每月浇水1次" }
       ],
       "special": [
         { "condition": (envParam: { wind_speed: number }) => envParam.wind_speed > 6, "advice": "移至避风处，防止倒伏", priority: 2 },
-        { "condition": (envParam: { uv_index: number }) => envParam.uv_index > 8, "advice": "提供遮阳网，防止晒伤", priority: 2 }
+        { "condition": (envParam: { uv_index?: number }) => (envParam?.uv_index ?? -1) > 8, "advice": "提供遮阳网，防止晒伤", priority: 2 }
       ]
     },
     "growth_stages": {
@@ -94,7 +94,7 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     }
   },
   {
-    "plant_type": "观叶植物",
+    "plant_type": PlantType.leafy,
     "examples": ["绿萝", "龟背竹", "常春藤", "吊兰"],
     "ideal_conditions": {
       "temperature": { "min": 15, "max": 30, "ideal": 24 },
@@ -125,10 +125,10 @@ export const PLANT_CARE_RULES: PlantRule[] = [
         { "condition": (envParam: { temp: number }) => envParam.temp > 28, "advice": "每2-3天浇水，保持湿润", "priority": 2 }
       ],
       "seasonal": [
-        { "season": "spring", "advice": "开始施肥，每2周一次" },
-        { "season": "summer", "advice": "保持土壤湿润，定期喷雾" },
-        { "season": "autumn", "advice": "减少施肥，清理枯叶" },
-        { "season": "winter", "advice": "减少浇水，停止施肥" }
+        { "season": Season.spring, "advice": "开始施肥，每2周一次" },
+        { "season": Season.summer, "advice": "保持土壤湿润，定期喷雾" },
+        { "season": Season.autumn, "advice": "减少施肥，清理枯叶" },
+        { "season": Season.winter, "advice": "减少浇水，停止施肥" }
       ],
       "special": [
         { "condition": (envParam: { wind_speed: number }) => envParam.wind_speed > 5, "advice": "移至避风处，保护叶片", priority: 2 },
@@ -142,7 +142,7 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     }
   },
   {
-    "plant_type": "开花植物",
+    "plant_type": PlantType.flowering,
     "examples": ["玫瑰", "百合", "郁金香", "菊花"],
     "ideal_conditions": {
       "temperature": { "min": 10, "max": 28, "ideal": 20 },
@@ -173,10 +173,10 @@ export const PLANT_CARE_RULES: PlantRule[] = [
         { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 10, "advice": "停止浇水，注意排水", "priority": 1 }
       ],
       "seasonal": [
-        { "season": "spring", "advice": "开始施肥，促进花芽形成" },
-        { "season": "summer", "advice": "及时摘除残花，保持通风" },
-        { "season": "autumn", "advice": "减少浇水，准备休眠" },
-        { "season": "winter", "advice": "保护根部，覆盖保温材料" }
+        { "season": Season.spring, "advice": "开始施肥，促进花芽形成" },
+        { "season": Season.summer, "advice": "及时摘除残花，保持通风" },
+        { "season": Season.autumn, "advice": "减少浇水，准备休眠" },
+        { "season": Season.winter, "advice": "保护根部，覆盖保温材料" }
       ],
       "special": [
         { "condition": (envParam: { heavy_rain: boolean }) => envParam.heavy_rain, "advice": "雨后检查花朵，摘除受损部分", priority: 2 },
@@ -190,7 +190,7 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     }
   },
   {
-    "plant_type": "蔬菜类",
+    "plant_type": PlantType.vegetable,
     "examples": ["番茄", "黄瓜", "辣椒", "生菜"],
     "ideal_conditions": {
       "temperature": { "min": 15, "max": 30, "ideal": 25 },
@@ -221,13 +221,13 @@ export const PLANT_CARE_RULES: PlantRule[] = [
         { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 15, "advice": "停止浇水，注意排水", "priority": 1 }
       ],
       "seasonal": [
-        { "season": "spring", "advice": "播种或移栽，开始施肥" },
-        { "season": "summer", "advice": "定期浇水，防治病虫害" },
-        { "season": "autumn", "advice": "收获，清理田园" },
-        { "season": "winter", "advice": "温室种植或休耕" }
+        { "season": Season.spring, "advice": "播种或移栽，开始施肥" },
+        { "season": Season.summer, "advice": "定期浇水，防治病虫害" },
+        { "season": Season.autumn, "advice": "收获，清理田园" },
+        { "season": Season.winter, "advice": "温室种植或休耕" }
       ],
       "special": [
-        { "condition": (envParam: { high_uv: boolean }) => envParam.high_uv, "advice": "果实遮阳防日灼", priority: 2 },
+        { "condition": (envParam: { high_uv?: boolean }) => envParam.high_uv ?? false, "advice": "果实遮阳防日灼", priority: 2 },
         { "condition": (envParam: { pest_alert: boolean }) => envParam.pest_alert, "advice": "使用生物防治或有机农药", priority: 2 }
       ]
     },
@@ -238,7 +238,7 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     }
   },
   {
-    "plant_type": "草本香草",
+    "plant_type": PlantType.herb,
     "examples": ["薄荷", "罗勒", "迷迭香", "百里香"],
     "ideal_conditions": {
       "temperature": { "min": 15, "max": 28, "ideal": 22 },
