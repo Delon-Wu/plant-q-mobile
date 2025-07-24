@@ -1,5 +1,7 @@
+import { setPosition } from '@/src/store/userSlice';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDispatch } from 'react-redux';
 
 // 位置获取配置选项
 export interface LocationOptions {
@@ -47,6 +49,7 @@ export function useUserLocation(options: LocationOptions = {}): UseUserLocationR
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const dispatch = useDispatch();
   
   // 使用 ref 防止组件卸载后的状态更新
   const isMountedRef = useRef<boolean>(true);
@@ -173,6 +176,7 @@ export function useUserLocation(options: LocationOptions = {}): UseUserLocationR
       
       if (isMountedRef.current && position) {
         setLocation(position);
+        dispatch(setPosition({ latitude: position.coords.latitude, longitude: position.coords.longitude }));
       }
     } catch (error) {
       if (isMountedRef.current) {

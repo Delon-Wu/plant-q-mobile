@@ -50,5 +50,5 @@ const userSlice = createSlice({
 });
 
 export const selectIsLogin = (state: UserState) => !!state.accessToken && !!state.refreshToken;
-export const { setUserInfo, clearUserStore, setToken } = userSlice.actions;
+export const { setUserInfo, clearUserStore, setToken, setPosition } = userSlice.actions;
 export default userSlice.reducer;
