@@ -157,7 +157,7 @@ export default function HomeScreen() {
         <Card style={{ backgroundColor: colors.primary, minHeight: 200 }}>
           <Card.Content>
             {currentWeather && (
-              <View>
+              <View style={{ marginBottom: 14 }}>
                 <WeatherSvg
                   code={currentWeather.code}
                   width={130}
@@ -229,7 +229,7 @@ export default function HomeScreen() {
                 </View>
               </View>
             )}
-            <Text variant="titleMedium" style={{ color: colors.onPrimary, marginTop: 14 }}>
+            <Text variant="titleMedium" style={{ color: colors.onPrimary }}>
               养护小贴士：
             </Text>
             <View style={{ flexDirection: "row", marginTop: 10 }}>

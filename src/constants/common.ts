@@ -62,29 +62,29 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     },
     "care_rules": {
       "temperature": [
-        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp < envParam.min_temp, "advice": "立即移至室内或温室", "priority": 1 },
-        { "condition": (envParam: { temp: number }) => envParam.temp < 10, "advice": "减少浇水频率，移至温暖处", "priority": 2 },
-        { "condition": (envParam: { temp: number }) => envParam.temp > 30, "advice": "移至半阴处，避免正午阳光", "priority": 2 },
-        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > envParam.max_temp, "advice": "加强通风，喷水降温", "priority": 1 }
+        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp < envParam.min_temp, "advice": "温度低于耐受下限，立即移至室内或温室", "priority": 1 },
+        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp >= envParam.min_temp && envParam.temp < 10, "advice": "温度处于耐受下限附近，减少浇水频率，移至温暖处", "priority": 2 },
+        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > 30 && envParam.temp <= envParam.max_temp, "advice": "温度接近耐受上限，移至半阴处，避免正午阳光", "priority": 2 },
+        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > envParam.max_temp, "advice": "温度超过耐受上限，加强通风，喷水降温", "priority": 1 }
       ],
       "humidity": [
-        { "condition": (envParam: { humidity: number }) => envParam.humidity > 60, "advice": "确保排水良好，防止烂根", "priority": 2 },
-        { "condition": (envParam: { humidity: number }) => envParam.humidity < 30, "advice": "可少量喷雾增加湿度", "priority": 3 }
+        { "condition": (envParam: { humidity: number, max_humidity: number }) => envParam.humidity > 50 && envParam.humidity <= 60, "advice": "湿度超过理想范围，确保排水良好，防止烂根", "priority": 2 },
+        { "condition": (envParam: { humidity: number, min_humidity: number }) => envParam.humidity >= 20 && envParam.humidity < 30, "advice": "湿度低于理想范围，可少量喷雾增加湿度", "priority": 3 }
       ],
       "watering": [
-        { "condition": (envParam: { precipitation: number, sunny_days: number }) => envParam.precipitation == 0 && envParam.sunny_days > 5, "advice": "每5-7天浇透一次", "priority": 2 },
-        { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 10, "advice": "停止浇水，确保排水", "priority": 1 },
-        { "condition": (envParam: { temp: number }) => envParam.temp > 30, "advice": "清晨或傍晚少量浇水", "priority": 2 }
+        { "condition": (envParam: { precipitation: number, sunny_days: number }) => envParam.precipitation === 0 && envParam.sunny_days > 5, "advice": "连续晴天无降水，每5-7天浇透一次水", "priority": 2 },
+        { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 10, "advice": "降水量充足，停止浇水，确保排水", "priority": 1 },
+        { "condition": (envParam: { temp: number }) => envParam.temp > 30, "advice": "高温天气，清晨或傍晚少量浇水", "priority": 2 }
       ],
       "seasonal": [
-        { "season": Season.spring, "advice": "开始增加浇水频率" },
-        { "season": Season.summer, "advice": "避免正午浇水，注意通风" },
-        { "season": Season.autumn, "advice": "逐渐减少浇水，准备越冬" },
-        { "season": Season.winter, "advice": "保持土壤干燥，每月浇水1次" }
+        { "season": Season.spring, "advice": "正值春天，开始增加浇水频率" },
+        { "season": Season.summer, "advice": "正值夏天，避免正午浇水，注意通风" },
+        { "season": Season.autumn, "advice": "正值秋天，逐渐减少浇水，准备越冬" },
+        { "season": Season.winter, "advice": "正值冬天，保持土壤干燥，每月浇水1次" }
       ],
       "special": [
-        { "condition": (envParam: { wind_speed: number }) => envParam.wind_speed > 6, "advice": "移至避风处，防止倒伏", priority: 2 },
-        { "condition": (envParam: { uv_index?: number }) => (envParam?.uv_index ?? -1) > 8, "advice": "提供遮阳网，防止晒伤", priority: 2 }
+        { "condition": (envParam: { wind_speed: number }) => envParam.wind_speed > 21.6, "advice": "风速过大，移至避风处，防止倒伏", priority: 2 },
+        { "condition": (envParam: { uv_index?: number }) => (envParam?.uv_index ?? -1) > 8, "advice": "紫外线过强，提供遮阳网，防止晒伤", priority: 2 }
       ]
     },
     "growth_stages": {
@@ -110,29 +110,29 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     },
     "care_rules": {
       "temperature": [
-        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp < envParam.min_temp, "advice": "移至室内温暖处，远离窗户", "priority": 1 },
-        { "condition": (envParam: { temp: number }) => envParam.temp < 15, "advice": "减少浇水，保持土壤微湿", "priority": 2 },
-        { "condition": (envParam: { temp: number }) => envParam.temp > 30, "advice": "增加空气湿度，叶片喷雾", "priority": 2 },
-        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > envParam.max_temp, "advice": "移至阴凉处，加强通风", "priority": 1 }
+        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp < envParam.min_temp, "advice": "温度低于耐受下限，移至室内温暖处，远离窗户", "priority": 1 },
+        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp >= envParam.min_temp && envParam.temp < 15, "advice": "温度低于理想范围，减少浇水，保持土壤微湿", "priority": 2 },
+        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > 30 && envParam.temp <= envParam.max_temp, "advice": "温度超过理想范围，增加空气湿度，叶片喷雾", "priority": 2 },
+        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > envParam.max_temp, "advice": "温度超过耐受上限，移至阴凉处，加强通风", "priority": 1 }
       ],
       "humidity": [
-        { "condition": (envParam: { humidity: number }) => envParam.humidity < 40, "advice": "使用加湿器或托盘加水", "priority": 2 },
-        { "condition": (envParam: { humidity: number }) => envParam.humidity > 70, "advice": "加强通风，防止霉菌滋生", "priority": 2 }
+        { "condition": (envParam: { humidity: number, min_humidity: number }) => envParam.humidity >= envParam.min_humidity && envParam.humidity < 40, "advice": "湿度低于理想范围，建议使用加湿器或托盘加水", "priority": 2 },
+        { "condition": (envParam: { humidity: number, max_humidity: number }) => envParam.humidity > 70 && envParam.humidity <= envParam.max_humidity, "advice": "湿度超过理想范围，加强通风，防止霉菌滋生", "priority": 2 }
       ],
       "watering": [
-        { "condition": (envParam: { topsoil_dry: boolean, humidity: number }) => envParam.topsoil_dry && envParam.humidity < 50, "advice": "浇透水直到排水孔出水", "priority": 2 },
-        { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 5, "advice": "减少人工浇水", "priority": 3 },
-        { "condition": (envParam: { temp: number }) => envParam.temp > 28, "advice": "每2-3天浇水，保持湿润", "priority": 2 }
+        { "condition": (envParam: { topsoil_dry: boolean, humidity: number }) => envParam.topsoil_dry && envParam.humidity < 50, "advice": "表土干燥且湿度不足，浇透水直到排水孔出水", "priority": 2 },
+        { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 5, "advice": "降水充足，减少人工浇水", "priority": 3 },
+        { "condition": (envParam: { temp: number }) => envParam.temp > 28, "advice": "温度过高，每2-3天浇水，保持湿润", "priority": 2 }
       ],
       "seasonal": [
-        { "season": Season.spring, "advice": "开始施肥，每2周一次" },
-        { "season": Season.summer, "advice": "保持土壤湿润，定期喷雾" },
-        { "season": Season.autumn, "advice": "减少施肥，清理枯叶" },
-        { "season": Season.winter, "advice": "减少浇水，停止施肥" }
+        { "season": Season.spring, "advice": "正值春天，开始施肥，每2周一次" },
+        { "season": Season.summer, "advice": "正值夏天，保持土壤湿润，定期喷雾" },
+        { "season": Season.autumn, "advice": "正值秋天，减少施肥，清理枯叶" },
+        { "season": Season.winter, "advice": "正值冬天，减少浇水，停止施肥" }
       ],
       "special": [
-        { "condition": (envParam: { wind_speed: number }) => envParam.wind_speed > 5, "advice": "移至避风处，保护叶片", priority: 2 },
-        { "condition": (envParam: { sunlight: number }) => envParam.sunlight < 4, "advice": "补充人工光源", priority: 2 },
+        { "condition": (envParam: { wind_speed: number }) => envParam.wind_speed > 18, "advice": "风速过大，移至避风处，保护叶片", priority: 2 },
+        { "condition": (envParam: { sunlight: number }) => envParam.sunlight < 4, "advice": "光照不足，补充人工光源", priority: 2 },
       ]
     },
     "growth_stages": {
@@ -158,29 +158,29 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     },
     "care_rules": {
       "temperature": [
-        { "condition": (envParam: { temp: number }) => envParam.temp < 5, "advice": "覆盖保温材料或移至室内", "priority": 1 },
-        { "condition": (envParam: { temp: number }) => envParam.temp < 10, "advice": "减少浇水，保护花蕾", "priority": 2 },
-        { "condition": (envParam: { temp: number }) => envParam.temp > 28, "advice": "遮阳防晒，增加浇水", "priority": 1 },
-        { "condition": (envParam: { temp: number }) => envParam.temp > 32, "advice": "移至阴凉处，喷水降温", "priority": 1 }
+        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp < envParam.min_temp, "advice": "温度低于耐受下限，覆盖保温材料或移至室内", "priority": 1 },
+        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp >= envParam.min_temp && envParam.temp < 10, "advice": "温度低于理想范围，减少浇水，保护花蕾", "priority": 2 },
+        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > 28 && envParam.temp <= envParam.max_temp, "advice": "温度超过理想范围，遮阳防晒，增加浇水", "priority": 1 },
+        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > envParam.max_temp, "advice": "温度超过耐受上限，移至阴凉处，喷水降温", "priority": 1 }
       ],
       "humidity": [
-        { "condition": (envParam: { humidity: number }) => envParam.humidity > 70, "advice": "加强通风，防止霉菌病", "priority": 2 },
-        { "condition": (envParam: { humidity: number }) => envParam.humidity < 40, "advice": "早晨喷雾增加湿度", "priority": 3 }
+        { "condition": (envParam: { humidity: number, max_humidity: number }) => envParam.humidity > 65 && envParam.humidity <= envParam.max_humidity, "advice": "湿度超过理想范围，加强通风，防止霉菌病", "priority": 2 },
+        { "condition": (envParam: { humidity: number, min_humidity: number }) => envParam.humidity >= envParam.min_humidity && envParam.humidity < 40, "advice": "湿度低于理想范围，早晨喷雾增加湿度", "priority": 3 }
       ],
       "watering": [
-        { "condition": (envParam: { flowering: boolean, temp: number }) => envParam.flowering && envParam.temp > 25, "advice": "每天浇水，避免浇到花朵", "priority": 1 },
-        { "condition": (envParam: { precipitation: number, sunny_days: number }) => envParam.precipitation < 5 && envParam.sunny_days > 3, "advice": "每1-2天浇透一次", "priority": 2 },
-        { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 10, "advice": "停止浇水，注意排水", "priority": 1 }
+        { "condition": (envParam: { flowering: boolean, temp: number }) => envParam.flowering && envParam.temp > 25, "advice": "开花期且温度偏高，每天浇水，避免浇到花朵", "priority": 1 },
+        { "condition": (envParam: { precipitation: number, sunny_days: number }) => envParam.precipitation < 5 && envParam.sunny_days > 3, "advice": "降水不足且连续晴天，每1-2天浇透一次", "priority": 2 },
+        { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 10, "advice": "降水充足，停止浇水，注意排水", "priority": 1 }
       ],
       "seasonal": [
-        { "season": Season.spring, "advice": "开始施肥，促进花芽形成" },
-        { "season": Season.summer, "advice": "及时摘除残花，保持通风" },
-        { "season": Season.autumn, "advice": "减少浇水，准备休眠" },
-        { "season": Season.winter, "advice": "保护根部，覆盖保温材料" }
+        { "season": Season.spring, "advice": "正值春天，开始施肥，促进花芽形成" },
+        { "season": Season.summer, "advice": "正值夏天，及时摘除残花，保持通风" },
+        { "season": Season.autumn, "advice": "正值秋天，减少浇水，准备休眠" },
+        { "season": Season.winter, "advice": "正值冬天，保护根部，覆盖保温材料" }
       ],
       "special": [
-        { "condition": (envParam: { heavy_rain: boolean }) => envParam.heavy_rain, "advice": "雨后检查花朵，摘除受损部分", priority: 2 },
-        { "condition": (envParam: { frost_warning: boolean }) => envParam.frost_warning, "advice": "覆盖花朵或移至室内", priority: 2 }
+        { "condition": (envParam: { heavy_rain: boolean }) => envParam.heavy_rain, "advice": "遭遇暴雨，雨后检查花朵，摘除受损部分", priority: 2 },
+        { "condition": (envParam: { frost_warning: boolean }) => envParam.frost_warning, "advice": "有霜冻预警，覆盖花朵或移至室内", priority: 2 }
       ]
     },
     "growth_stages": {
@@ -206,29 +206,29 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     },
     "care_rules": {
       "temperature": [
-        { "condition": (envParam: { temp: number }) => envParam.temp < 12, "advice": "覆盖保温膜或使用温室", "priority": 1 },
-        { "condition": (envParam: { temp: number }) => envParam.temp < 15, "advice": "生长缓慢，减少浇水", "priority": 2 },
-        { "condition": (envParam: { temp: number }) => envParam.temp > 30, "advice": "增加浇水，遮阳防晒", "priority": 1 },
-        { "condition": (envParam: { temp: number }) => envParam.temp > 35, "advice": "加强通风，喷水降温", "priority": 1 }
+        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp < envParam.min_temp, "advice": "温度低于耐受下限，建议覆盖保温膜或使用温室", "priority": 1 },
+        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp >= envParam.min_temp && envParam.temp < 15, "advice": "温度低于理想范围，生长缓慢，减少浇水", "priority": 2 },
+        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > 30 && envParam.temp <= envParam.max_temp, "advice": "温度超过理想范围，增加浇水，遮阳防晒", "priority": 1 },
+        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > envParam.max_temp, "advice": "温度超过耐受上限，加强通风，喷水降温", "priority": 1 }
       ],
       "humidity": [
-        { "condition": (envParam: { humidity: number }) => envParam.humidity > 75, "advice": "加强通风，预防真菌病", "priority": 2 },
-        { "condition": (envParam: { humidity: number }) => envParam.humidity < 45, "advice": "早晨浇水，覆盖保墒", "priority": 2 }
+        { "condition": (envParam: { humidity: number, max_humidity: number }) => envParam.humidity > 70 && envParam.humidity <= envParam.max_humidity, "advice": "湿度超过理想范围，加强通风，预防真菌病", "priority": 2 },
+        { "condition": (envParam: { humidity: number, min_humidity: number }) => envParam.humidity >= envParam.min_humidity && envParam.humidity < 50, "advice": "湿度低于理想范围，早晨浇水，覆盖保墒", "priority": 2 }
       ],
       "watering": [
-        { "condition": (envParam: { fruiting: boolean, temp: number }) => envParam.fruiting && envParam.temp > 25, "advice": "每天早晨浇透水", "priority": 1 },
-        { "condition": (envParam: { precipitation: number }) => envParam.precipitation < 5, "advice": "每1-2天浇水", "priority": 2 },
-        { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 15, "advice": "停止浇水，注意排水", "priority": 1 }
+        { "condition": (envParam: { fruiting: boolean, temp: number }) => envParam.fruiting && envParam.temp > 25, "advice": "结果期且温度偏高，每天早晨浇透水", "priority": 1 },
+        { "condition": (envParam: { precipitation: number }) => envParam.precipitation < 5, "advice": "降水不足，每1-2天浇水", "priority": 2 },
+        { "condition": (envParam: { precipitation: number }) => envParam.precipitation > 15, "advice": "降水过多，停止浇水，注意排水", "priority": 1 }
       ],
       "seasonal": [
-        { "season": Season.spring, "advice": "播种或移栽，开始施肥" },
-        { "season": Season.summer, "advice": "定期浇水，防治病虫害" },
-        { "season": Season.autumn, "advice": "收获，清理田园" },
-        { "season": Season.winter, "advice": "温室种植或休耕" }
+        { "season": Season.spring, "advice": "正值春天，播种或移栽，开始施肥" },
+        { "season": Season.summer, "advice": "正值夏天，定期浇水，防治病虫害" },
+        { "season": Season.autumn, "advice": "正值秋天，收获，清理田园" },
+        { "season": Season.winter, "advice": "正值冬天，温室种植或休耕" }
       ],
       "special": [
-        { "condition": (envParam: { high_uv?: boolean }) => envParam.high_uv ?? false, "advice": "果实遮阳防日灼", priority: 2 },
-        { "condition": (envParam: { pest_alert: boolean }) => envParam.pest_alert, "advice": "使用生物防治或有机农药", priority: 2 }
+        { "condition": (envParam: { high_uv?: boolean }) => envParam.high_uv ?? false, "advice": "紫外线强烈，果实遮阳防日灼", priority: 2 },
+        { "condition": (envParam: { pest_alert: boolean }) => envParam.pest_alert, "advice": "病虫害预警，建议使用生物防治或有机农药", priority: 2 }
       ]
     },
     "growth_stages": {
@@ -254,16 +254,16 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     },
     "care_rules": {
       "temperature": [
-        { "condition": (envParam: { temp: number }) => envParam.temp < 10, "advice": "移至室内或温室", "priority": 1 },
-        { "condition": (envParam: { temp: number }) => envParam.temp > 30, "advice": "遮阳，增加浇水", "priority": 2 }
+        { "condition": (envParam: { temp: number, min_temp: number }) => envParam.temp < envParam.min_temp, "advice": "温度低于耐受下限，移至室内或温室", "priority": 1 },
+        { "condition": (envParam: { temp: number, max_temp: number }) => envParam.temp > 28 && envParam.temp <= envParam.max_temp, "advice": "温度超过理想范围，遮阳，增加浇水", "priority": 2 }
       ],
       "watering": [
-        { "condition": (envParam: { topsoil_dry: boolean }) => envParam.topsoil_dry, "advice": "浇透水", "priority": 2 },
-        { "condition": (envParam: { humidity: number }) => envParam.humidity > 65, "advice": "减少浇水，防止烂根", "priority": 2 }
+        { "condition": (envParam: { topsoil_dry: boolean }) => envParam.topsoil_dry, "advice": "表土干燥，浇透水", "priority": 2 },
+        { "condition": (envParam: { humidity: number, max_humidity: number }) => envParam.humidity > 60 && envParam.humidity <= envParam.max_humidity, "advice": "湿度超过理想范围，减少浇水，防止烂根", "priority": 2 }
       ],
       "special": [
-        { "condition": (envParam: { frequent_harvest: boolean }) => envParam.frequent_harvest, "advice": "增加施肥频率", "priority": 2 },
-        { "condition": (envParam: { flowering: boolean }) => envParam.flowering, "advice": "及时摘除花蕾保持风味", "priority": 2 }
+        { "condition": (envParam: { frequent_harvest: boolean }) => envParam.frequent_harvest, "advice": "频繁采收消耗养分，增加施肥频率", "priority": 2 },
+        { "condition": (envParam: { flowering: boolean }) => envParam.flowering, "advice": "开花影响叶片品质，及时摘除花蕾保持风味", "priority": 2 }
       ]
     },
     "growth_stages": {
