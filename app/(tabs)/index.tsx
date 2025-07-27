@@ -185,7 +185,7 @@ export default function HomeScreen() {
                       {currentWeather.text}{" "}
                       {Number(threeDaysWeather[0].precip) > 0
                         ? ` 今日${
-                            Number(threeDaysWeather[0].precip) * 100
+                            Number(threeDaysWeather[0].precip) * 100 - 0.01
                           }%概率下雨`
                         : ""}
                     </Text>

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import EventSource from 'react-native-sse';
 
-const DeepSeekChatApp = () => {
+const Q助手ChatApp = () => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -201,7 +201,7 @@ const DeepSeekChatApp = () => {
     <ThemedView style={styles.container}>
       {/* 标题栏 */}
       <ThemedView style={styles.header}>
-        <ThemedText style={styles.title}>DeepSeek Chat</ThemedText>
+        <ThemedText style={styles.title}>Q助手</ThemedText>
         <TouchableOpacity onPress={clearChat}>
           <ThemedText style={styles.clearButton}>清除</ThemedText>
         </TouchableOpacity>
@@ -215,9 +215,9 @@ const DeepSeekChatApp = () => {
       >
         {messages.length === 0 ? (
           <ThemedView style={styles.welcomeContainer}>
-            <ThemedText style={styles.welcomeTitle}>DeepSeek API 聊天</ThemedText>
+            <ThemedText style={styles.welcomeTitle}>Q助手 API 聊天</ThemedText>
             <ThemedText style={styles.welcomeText}>
-              输入消息开始与DeepSeek AI对话。消息将实时流式传输显示。
+              输入消息开始与Q助手对话。消息将实时流式传输显示。
             </ThemedText>
             <ThemedText style={styles.welcomeTip}>
               提示: 确保已设置有效的API密钥
@@ -233,7 +233,7 @@ const DeepSeekChatApp = () => {
               ]}
             >
               <ThemedText style={styles.messageRole}>
-                {message.role === 'user' ? '你' : 'DeepSeek'}
+                {message.role === 'user' ? '你' : 'Q助手'}
               </ThemedText>
               <ThemedText style={styles.messageContent}>
                 {message.content}
@@ -284,7 +284,7 @@ const DeepSeekChatApp = () => {
       {!apiKey && (
         <ThemedView style={styles.apiKeyWarning}>
           <ThemedText style={styles.apiKeyWarningText}>
-            请设置有效的DeepSeek API密钥
+            请设置有效的Q助手 API密钥
           </ThemedText>
         </ThemedView>
       )}
@@ -444,4 +444,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DeepSeekChatApp;
+export default Q助手ChatApp;
