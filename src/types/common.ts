@@ -11,7 +11,7 @@ export interface WeatherData {
   temperature: number; // 当前温度(℃)
   humidity: number; // 当前湿度(%)
   precipitation: number; // 降水量(mm)
-  wind_speed: number; // 风速(m/s)
+  wind_speed: number; // 风速(km/h)
   condition: string; // 天气状况('晴','雨','雪'等)
   forecast: ForecastDay[]; // 未来3天预报
   date: Date; // 当前日期

@@ -6,7 +6,7 @@ interface UserState {
   phone: string;
   accessToken?: string; // 可选字段
   refreshToken?: string; // 可选字段
-  position: {
+  position?: {
     latitude: number | null;
     longitude: number | null;
   };
