@@ -1,16 +1,21 @@
+import Select from '@/components/Select';
 import ThemedText from '@/components/ThemedText';
 import ThemedView from '@/components/ThemedView';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Crypto from 'expo-crypto';
+import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   TextInput,
-  TouchableOpacity
+  TouchableOpacity,
+  View
 } from 'react-native';
 import EventSource from 'react-native-sse';
 
@@ -18,29 +23,54 @@ const Q助手ChatApp = () => {
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [quickAskEnabled, setQuickAskEnabled] = useState(false);
+  const [quickAsk, setQuickAsk] = useState('');
+  const [showImageSelect, setShowImageSelect] = useState(false);
   const scrollViewRef = useRef<ScrollView | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const API_KEY = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY; // TODO: 通过加密方式存储和获取API密钥
 
-  // 模拟API密钥存储（实际应用中应使用安全存储）
-  useEffect(() => {
-    // 这里应该从安全存储中获取API密钥
-    setApiKey('sk-919d95fe290b4b168e8ee37381a4ea77');
-  }, []);
 
+  // 图片选择逻辑
+  const handleImageSelect = async (option: string) => {
+    let result;
+    if (option === 'camera') {
+      result = await ImagePicker.launchCameraAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+    } else if (option === 'file') {
+      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images });
+    }
+    if (!result?.cancelled && result?.assets?.[0]?.uri) {
+      setSelectedImage(result.assets[0].uri);
+      setQuickAskEnabled(true);
+    }
+  };
+
+  // 发送逻辑
   const handleSend = async () => {
-    if (!input.trim() || isLoading || !apiKey) return;
-
+    if ((!input.trim() && !quickAsk) || isLoading || !API_KEY) return;
+    let content = input;
+    // 如果有快速提问，优先发送快速提问内容
+    if (quickAsk) {
+      content = quickAsk;
+    }
+    // 如果有图片，构造 function call 请求
+    let functionCall = null;
+    if (selectedImage && quickAsk) {
+      functionCall = {
+        name: 'ask_plant_type',
+        arguments: { image_url: selectedImage }
+      };
+    }
     // 添加用户消息
     const userMessage = {
       id: await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `${Date.now()}-user`),
       role: 'user',
-      content: input,
-      timestamp: new Date().toISOString()
+      content,
+      timestamp: new Date().toISOString(),
+      ...(functionCall ? { function_call: functionCall } : {})
     };
-    
     setMessages(prev => [...prev, userMessage]);
-    
     // 添加占位消息
     const assistantMessage = {
       id: await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, `${Date.now()}-assistant`),
@@ -49,65 +79,54 @@ const Q助手ChatApp = () => {
       timestamp: new Date().toISOString(),
       isStreaming: true
     };
-    
     setMessages(prev => [...prev, assistantMessage]);
     setInput('');
+    setQuickAsk('');
     setIsLoading(true);
-
     try {
-      // 关闭之前的连接（如果有）
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
-
-      // 创建请求体
       const body = JSON.stringify({
         model: 'deepseek-chat',
-        messages: [...messages, userMessage].map(msg => ({ role: msg.role, content: msg.content })),
+        messages: [...messages, userMessage].map(msg => ({
+          role: msg.role,
+          content: msg.content,
+          ...(msg.function_call ? { function_call: msg.function_call } : {})
+        })),
         stream: true,
         temperature: 0.7,
         max_tokens: 2048
       });
-
-      // 创建SSE连接
       const eventSource = new EventSource('https://api.deepseek.com/chat/completions', {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
+          'Authorization': `Bearer ${API_KEY}`,
         },
         method: 'POST',
         body: body,
       });
-
       eventSourceRef.current = eventSource;
-      
       let fullResponse = '';
-      
       eventSource.addEventListener('message', (event) => {
         if (event.data === '[DONE]') {
           eventSource.close();
           return;
         }
-        
         try {
           const parsed = JSON.parse(event.data ?? '');
           const content = parsed.choices[0]?.delta?.content || '';
-          
           if (content) {
             fullResponse += content;
-            
-            // 更新最后一条消息
             setMessages(prev => {
               const updated = [...prev];
               const lastIndex = updated.length - 1;
-              
               if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
                 updated[lastIndex] = {
                   ...updated[lastIndex],
                   content: fullResponse
                 };
               }
-              
               return updated;
             });
           }
@@ -115,14 +134,12 @@ const Q助手ChatApp = () => {
           console.error('解析错误:', error);
         }
       });
-
       eventSource.addEventListener('error', (event) => {
         console.error('SSE错误:', event);
         if (event.type === 'error') {
           setMessages(prev => {
             const updated = [...prev];
             const lastIndex = updated.length - 1;
-            
             if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
               updated[lastIndex] = {
                 ...updated[lastIndex],
@@ -130,42 +147,32 @@ const Q助手ChatApp = () => {
                 isStreaming: false
               };
             }
-            
             return updated;
           });
-          
           setIsLoading(false);
           eventSource.close();
         }
       });
-
       eventSource.addEventListener('close', () => {
         setIsLoading(false);
-        
-        // 标记流结束
         setMessages(prev => {
           const updated = [...prev];
           const lastIndex = updated.length - 1;
-          
           if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
             updated[lastIndex] = {
               ...updated[lastIndex],
               isStreaming: false
             };
           }
-          
           return updated;
         });
       });
-      
     } catch (error) {
       console.error('请求失败:', error);
       setIsLoading(false);
-      
       setMessages(prev => {
         const updated = [...prev];
         const lastIndex = updated.length - 1;
-        
         if (lastIndex >= 0 && updated[lastIndex].role === 'assistant') {
           updated[lastIndex] = {
             ...updated[lastIndex],
@@ -173,7 +180,6 @@ const Q助手ChatApp = () => {
             isStreaming: false
           };
         }
-        
         return updated;
       });
     }
@@ -206,9 +212,8 @@ const Q助手ChatApp = () => {
           <ThemedText style={styles.clearButton}>清除</ThemedText>
         </TouchableOpacity>
       </ThemedView>
-      
       {/* 聊天内容 */}
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         style={styles.messagesContainer}
         contentContainerStyle={styles.messagesContent}
@@ -225,10 +230,10 @@ const Q助手ChatApp = () => {
           </ThemedView>
         ) : (
           messages.map((message, index) => (
-            <ThemedView 
-              key={message.id} 
+            <ThemedView
+              key={message.id}
               style={[
-                styles.messageBubble, 
+                styles.messageBubble,
                 message.role === 'user' ? styles.userBubble : styles.assistantBubble
               ]}
             >
@@ -247,15 +252,40 @@ const Q助手ChatApp = () => {
           ))
         )}
       </ScrollView>
-      
+      {/* 快速提问选项（默认禁用，选中图片后激活） */}
+      <View style={styles.quickAskContainer}>
+        <Select
+          value={quickAsk}
+          onValueChange={setQuickAsk}
+          options={[{ label: '问植物类型', value: '请识别图片中的植物类型' }]}
+          variant="underlined"
+          placeholder="快速提问"
+          disabled={!quickAskEnabled}
+          style={styles.quickAskSelect}
+        />
+      </View>
       {/* 输入区域 */}
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
       >
-        <ThemedView style={styles.inputContainer}>
+        <View style={styles.inputAreaContainer}>
+          {/* 图片预览 */}
+          {selectedImage && (
+            <View style={styles.imagePreviewContainer}>
+              <Image source={{ uri: selectedImage }} style={styles.imagePreview} />
+              <TouchableOpacity style={styles.removeImageBtn} onPress={() => {
+                setSelectedImage(null);
+                setQuickAskEnabled(false);
+                setQuickAsk('');
+              }}>
+                <Ionicons name="close-circle" size={24} color="#f44336" />
+              </TouchableOpacity>
+            </View>
+          )}
+          {/* 输入框单独一行，无边框 */}
           <TextInput
-            style={styles.input}
+            style={styles.inputPlain}
             value={input}
             onChangeText={setInput}
             placeholder="输入消息..."
@@ -263,25 +293,50 @@ const Q助手ChatApp = () => {
             editable={!isLoading}
             multiline
           />
-          <TouchableOpacity 
+          {/* 图片选择按钮+Select */}
+          <View style={styles.imageSelectRow}>
+            {/* TODO: 使用gluestack 的acionsheet组件来实现 */}
+            {/* <TouchableOpacity
+              style={styles.imageAddBtn}
+              onPress={() => setShowImageSelect(!showImageSelect)}
+              disabled={isLoading}
+            >
+              <Ionicons name="camera-outline" size={28}/>
+            </TouchableOpacity>
+              <Select
+                value=""
+                onValueChange={(v) => {
+                  setShowImageSelect(false);
+                  handleImageSelect(v);
+                }}
+                options={[
+                  { label: '拍照', value: 'camera' },
+                  { label: '从文件系统选择图片', value: 'file' }
+                ]}
+                variant="underlined"
+                placeholder="选择图片来源"
+                style={styles.imageSelect}
+              ></Select> */}
+          </View>
+          {/* 发送按钮右下角绝对定位 */}
+          <TouchableOpacity
             style={[
-              styles.sendButton, 
-              (!input.trim() || isLoading || !apiKey) && styles.sendButtonDisabled
+              styles.sendButtonIcon,
+              ((!(input.trim() || quickAsk) || isLoading || !API_KEY) && styles.sendButtonDisabledIcon)
             ]}
             onPress={handleSend}
-            disabled={!input.trim() || isLoading || !apiKey}
+            disabled={!(input.trim() || quickAsk) || isLoading || !API_KEY}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <ThemedText style={styles.sendButtonText}>发送</ThemedText>
+              <Ionicons name="send" size={28} color="white" />
             )}
           </TouchableOpacity>
-        </ThemedView>
+        </View>
       </KeyboardAvoidingView>
-      
       {/* API密钥设置提示 */}
-      {!apiKey && (
+      {!API_KEY && (
         <ThemedView style={styles.apiKeyWarning}>
           <ThemedText style={styles.apiKeyWarningText}>
             请设置有效的Q助手 API密钥
@@ -398,40 +453,64 @@ const styles = StyleSheet.create({
     backgroundColor: '#4caf50',
     marginLeft: 2,
   },
-  inputContainer: {
+  quickAskContainer: {
+    paddingHorizontal: 15,
+    paddingTop: 10,
+    backgroundColor: 'white',
+  },
+  quickAskSelect: {
+    minWidth: 120,
+    marginBottom: 5,
+  },
+  inputAreaContainer: {
+    position: 'relative',
+    backgroundColor: 'white',
+    paddingHorizontal: 15,
+    paddingBottom: 25,
+    paddingTop: 10,
+  },
+  inputPlain: {
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    paddingVertical: 8,
+    fontSize: 16,
+    minHeight: 40,
+    marginBottom: 8,
+  },
+  imageSelectRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 15,
-    paddingBottom: 25,
-    backgroundColor: 'white',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+    marginBottom: 8,
   },
-  input: {
-    flex: 1,
-    backgroundColor: '#f0f2f5',
-    borderRadius: 25,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    fontSize: 16,
-    maxHeight: 150,
-    marginRight: 10,
+  imageAddBtn: {
+    marginRight: 8,
+    padding: 4,
   },
-  sendButton: {
-    backgroundColor: '#3f51b5',
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 25,
+  imageSelect: {
+    minWidth: 120,
+  },
+  sendButtonIcon: {
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 2,
   },
-  sendButtonDisabled: {
+  sendButtonDisabledIcon: {
     backgroundColor: '#9fa8da',
   },
-  sendButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16,
+  imagePreviewContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  imagePreview: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    marginRight: 8,
+  },
+  removeImageBtn: {
+    padding: 2,
   },
   apiKeyWarning: {
     backgroundColor: '#ffebee',

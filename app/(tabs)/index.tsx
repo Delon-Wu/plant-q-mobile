@@ -59,7 +59,7 @@ export default function HomeScreen() {
       getWeatherData(
         `${location.coords.latitude}:${location.coords.longitude}`
       );
-    } else if (userInfo.position.latitude && userInfo.position.longitude) {
+    } else if (userInfo.position?.latitude && userInfo.position.longitude) {
       getWeatherData(
         `${userInfo.position.latitude}:${userInfo.position.longitude}`
       );
