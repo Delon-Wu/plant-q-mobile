@@ -25,3 +25,11 @@ export async function register(data: { email: string, password: string, password
 export async function refreshToken(refreshToken: string) {
   return request.post<ApiResponse<{access: string}>>(WhiteList.refresh, { refresh: refreshToken })
 }
+
+export async function sendVerificationCode({ email }: { email: string }) {
+  return request.post<ApiResponse<undefined>>(WhiteList.sendCode, { email })
+}
+
+export async function verifyCode({ email, code }: { email: string, code: string }) {
+  return request.post<ApiResponse<undefined>>(WhiteList.verifyCode, { email, code })
+}

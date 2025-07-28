@@ -7,7 +7,7 @@ import { RootState } from "@/src/store";
 import { clearUserStore, selectIsLogin } from "@/src/store/userSlice";
 import { router } from "expo-router";
 import { useState } from "react";
-import { Alert, StyleSheet } from "react-native";
+import { Alert, Platform, StyleSheet } from "react-native";
 import { Avatar, Button } from "react-native-paper";
 import { useDispatch, useSelector } from "react-redux";
 
@@ -19,6 +19,11 @@ export default function Me() {
   const { showToast } = customToast(toast);
 
   const handleLogout = async () => {
+    if (Platform.OS === "web") {
+      performLogout();
+      return;
+    }
+
     // 显示确认对话框
     Alert.alert(
       "确认退出",

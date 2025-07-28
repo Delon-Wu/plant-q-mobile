@@ -1,5 +1,7 @@
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
+import customToast from "@/components/Toast";
+import { useToast } from "@/components/ui/toast";
 import { getUserInfo, login } from "@/src/api/account";
 import { setToken, setUserInfo } from "@/src/store/userSlice";
 import { router } from "expo-router";
@@ -14,6 +16,8 @@ export default function Login() {
   const [hostTapCount, setHostTapCount] = useState(0);
   const dispatch = useDispatch();
   const lastTapTime = useRef<number>(0);
+  const tost = useToast();
+  const { showToast } = customToast(tost);
 
   const handleLogin = () => {
     login(email, password)
@@ -41,6 +45,8 @@ export default function Login() {
           );
           router.replace("/");
         });
+      }).catch((err) => {
+        showToast({ title: err.msg, action: "error" });
       });
   };
 

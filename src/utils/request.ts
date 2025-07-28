@@ -23,6 +23,8 @@ export enum WhiteList {
   login = '/accounts/login',
   register = '/accounts/register',
   refresh = '/accounts/login/refresh',
+  sendCode = '/accounts/send-verification-code',
+  verifyCode = '/accounts/verify-code',
 }
 const whiteList = Object.values(WhiteList);
 
