@@ -297,7 +297,7 @@ const QAssistant = () => {
               </ThemedText>
               <ThemedText style={styles.messageContent}>
                 {message.content}
-                {1 && (
+                {message.isStreaming && (
                   <BlinkingText>
                     ...
                   </BlinkingText>

@@ -4,12 +4,12 @@ interface UserState {
   name: string;
   email: string;
   phone: string;
-  accessToken?: string; // 可选字段
-  refreshToken?: string; // 可选字段
-  position?: {
+  position: {
     latitude: number | null;
     longitude: number | null;
   };
+  accessToken?: string; // 可选字段
+  refreshToken?: string; // 可选字段
 }
 
 const initialState: UserState = {
@@ -25,7 +25,7 @@ const userSlice = createSlice({
   name: 'user',
   initialState,
   reducers: {
-    setUserInfo(state, action: PayloadAction<UserState>) {
+    setUserBasicInfo(state, action: PayloadAction<Pick<UserState, 'name' | 'email' | 'phone'>>) {
       state.name = action.payload.name;
       state.email = action.payload.email;
       state.phone = action.payload.phone;
@@ -50,5 +50,5 @@ const userSlice = createSlice({
 });
 
 export const selectIsLogin = (state: UserState) => !!state.accessToken && !!state.refreshToken;
-export const { setUserInfo, clearUserStore, setToken, setPosition } = userSlice.actions;
+export const { setUserBasicInfo, clearUserStore, setToken, setPosition } = userSlice.actions;
 export default userSlice.reducer;

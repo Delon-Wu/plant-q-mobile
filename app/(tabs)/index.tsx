@@ -21,15 +21,6 @@ import HumiditySvg from "../../assets/images/humidity.svg";
 import TemperatureSvg from "../../assets/images/temperature.svg";
 import WindLevelSvg from "../../assets/images/windLevel.svg";
 
-const Information = {
-  0: "快开始今天的任务吧！",
-  25: "很棒，你开始了今天的任务！",
-  50: "继续努力，你已经完成了一半的任务！",
-  75: "太棒了，你即将完成所有的任务！",
-  100: "恭喜你，你已经完成了所有的任务！",
-  default: "快开始今天的任务吧！",
-};
-
 export default function HomeScreen() {
   const colors = useThemeColor();
   const [tasks, setTasks] = useState<any[]>([]);

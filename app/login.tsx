@@ -3,7 +3,7 @@ import ThemedView from "@/components/ThemedView";
 import customToast from "@/components/Toast";
 import { useToast } from "@/components/ui/toast";
 import { getUserInfo, login } from "@/src/api/account";
-import { setToken, setUserInfo } from "@/src/store/userSlice";
+import { setToken, setUserBasicInfo } from "@/src/store/userSlice";
 import { router } from "expo-router";
 import React, { useRef, useState } from "react";
 import { StyleSheet } from "react-native";
@@ -37,7 +37,7 @@ export default function Login() {
       .then(() => {
         getUserInfo().then(({ data }) => {
           dispatch(
-            setUserInfo({
+            setUserBasicInfo({
               name: data.username,
               email: data.email,
               phone: data.phone,

@@ -3,7 +3,7 @@ import { AccessToken, RefreshToken } from '@/src/constants/localStorageKey';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { setToken, setUserInfo } from './userSlice';
+import { setToken, setUserBasicInfo } from './userSlice';
 
 export default function useInitUser() {
   const dispatch = useDispatch();
@@ -22,7 +22,7 @@ export default function useInitUser() {
         if (!userInfo?.email) {
           try {
             const { data } = await getUserInfo();
-            dispatch(setUserInfo({
+            dispatch(setUserBasicInfo({
               name: data.username,
               email: data.email,
               phone: data.phone,
