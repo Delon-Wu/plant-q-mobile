@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/actionsheet";
 import React from "react";
 
-type Action = {
+export type Action = {
   label: string;
   icon: React.ElementType;
   iconProps: React.ComponentProps<React.ElementType>;

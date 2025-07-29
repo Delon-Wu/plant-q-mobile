@@ -1,4 +1,4 @@
-import ActionSelector from "@/components/ActionSelector";
+import ActionSelector, { Action } from "@/components/ActionSelector";
 import BlinkingText from "@/components/BlinkingText";
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
@@ -20,15 +20,50 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Markdown from 'react-native-markdown-display';
 import { Button } from "react-native-paper";
 import EventSource from "react-native-sse";
 
+const SYSTEM_PROMPT = `你是一名专业的植物学家和园艺顾问，专注于为用户提供准确、易懂的植物养护解决方案。你的回答需结合科学知识和实际经验，语言亲切自然，适合普通用户理解。  
+
+**回答要求：**  
+1. **精准性**：根据用户提供的植物名称（如用户未说明，需主动询问）给出针对性建议，避免笼统回答。  
+2. **结构化**：分点列出关键信息（如光照、浇水、土壤、常见问题），必要时用符号/emoji（🌞💧）增强可读性。  
+3. **问题解决**：若用户描述植物异常（如黄叶、枯萎），先分析可能原因（缺水/病虫害等），再提供步骤化解决建议。  
+4. **安全提示**：涉及农药、修剪等操作时，需标注安全注意事项。  
+5. **主动追问**：若信息不足（如未说明植物类型或环境），礼貌请求用户补充细节。  
+
+**示例回答风格：**  
+『您的绿萝出现黄叶，可能是以下原因：  
+1. **过度浇水**💧：绿萝喜湿润但忌积水，建议每周浇水1-2次，保持土壤微湿即可。  
+2. **光照不足**🌞：移至明亮散射光处，避免阳光直射。  
+...  
+需要更具体的帮助吗？请告诉我您的养护环境（如室内/阳台）~』  
+
+**禁止事项：**  
+- 避免模糊表述（如“多浇水”），需量化建议（如“夏季每周浇水3次”）。  
+- 不回答与植物无关的问题。`;
+
+interface MessageLine {
+  function_call?: {
+    name: string;
+    arguments: {
+      image_url: string;
+    };
+  };
+  isStreaming?: boolean;
+  id: string;
+  role: string;
+  content: string;
+  timestamp: string;
+}
+
 const QAssistant = () => {
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<MessageLine[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [quickAskEnabled, setQuickAskEnabled] = useState(false);
+  // const [quickAskEnabled, setQuickAskEnabled] = useState(false);
   const [quickAsk, setQuickAsk] = useState("");
   const [showImageSelect, setShowImageSelect] = useState(false);
   const scrollViewRef = useRef<ScrollView | null>(null);
@@ -38,7 +73,6 @@ const QAssistant = () => {
 
   // 图片选择逻辑
   const takePhoto = async () => {
-    console.log('-------------------Take Photo------------------')
     // 1. 先请求相机权限
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== "granted") {
@@ -54,7 +88,7 @@ const QAssistant = () => {
     });
     if (!result.canceled && result.assets?.[0]?.uri) {
       setSelectedImage(result.assets[0].uri);
-      setQuickAskEnabled(true);
+      // setQuickAskEnabled(true);
     }
   };
 
@@ -74,22 +108,22 @@ const QAssistant = () => {
     });
     if (!result.canceled && result.assets?.[0]?.uri) {
       setSelectedImage(result.assets[0].uri);
-      setQuickAskEnabled(true);
+      // setQuickAskEnabled(true);
     }
   };
 
-  const actions = [
+  const actions: Action[] = [
     {
       label: "拍照",
       icon: Ionicons,
       iconProps: { name: "camera", size: 14, color: "white" },
-      onclose: takePhoto,
+      onPress: takePhoto,
     },
     {
       label: "从相册选择",
       icon: Ionicons,
       iconProps: { name: "images", size: 14, color: "white" },
-      onclose: choosePhoto,
+      onPress: choosePhoto,
     },
   ];
 
@@ -140,29 +174,43 @@ const QAssistant = () => {
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
       }
-      const body = JSON.stringify({
-        model: "deepseek-chat",
-        messages: [...messages, userMessage].map((msg) => ({
+
+      // TODO:  1. 将图片插进去 2. 优化黑暗模式的样式 3. 如果有图片，先上传图片到 百度 的植物图片识别接口
+      // system prompt
+      const systemPrompt = {
+        role: "system",
+        content: SYSTEM_PROMPT,
+      };
+      const allMessages = [
+        systemPrompt,
+        ...messages.map((msg) => ({
           role: msg.role,
           content: msg.content,
           ...(msg.function_call ? { function_call: msg.function_call } : {}),
         })),
+        {
+          role: userMessage.role,
+          content: userMessage.content,
+          ...(userMessage.function_call
+            ? { function_call: userMessage.function_call }
+            : {}),
+        },
+      ];
+      const body = JSON.stringify({
+        model: "deepseek-chat",
+        messages: allMessages,
         stream: true,
         temperature: 0.7,
         max_tokens: 2048,
       });
-      console.log('DEEPSEEK_API_ADDRESS-->', DEEPSEEK_API_ADDRESS)
-      const eventSource = new EventSource(
-        DEEPSEEK_API_ADDRESS,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${API_KEY}`,
-          },
-          method: "POST",
-          body: body,
-        }
-      );
+      const eventSource = new EventSource(DEEPSEEK_API_ADDRESS, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
+        },
+        method: "POST",
+        body: body,
+      });
       eventSourceRef.current = eventSource;
       let fullResponse = "";
       eventSource.addEventListener("message", (event) => {
@@ -224,16 +272,20 @@ const QAssistant = () => {
           return updated;
         });
       });
-    } catch (error) {
+    } catch (error: any) {
+      let errorMessage = "❌ 请求失败，请稍后再试";
       console.error("请求失败:", error);
       setIsLoading(false);
+      if (error?.status === 401) {
+        errorMessage = "啊哦，预算花完了，功能暂时停用，请耐心等待再次开放~ 😊";
+      }
       setMessages((prev) => {
         const updated = [...prev];
         const lastIndex = updated.length - 1;
         if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
           updated[lastIndex] = {
             ...updated[lastIndex],
-            content: "❌ 请求失败，请稍后再试",
+            content: errorMessage,
             isStreaming: false,
           };
         }
@@ -259,10 +311,10 @@ const QAssistant = () => {
   return (
     <ThemedView style={styles.container}>
       {/* 标题栏 */}
-      <ThemedView style={styles.header}>
+      <ThemedView style={[styles.header, { borderColor: colors.outline}]}>
         <ThemedText style={styles.title}>Q助手</ThemedText>
         <TouchableOpacity onPress={clearChat}>
-          <Ionicons name="trash-outline" size={24} color={colors.text} />
+          <Ionicons name="trash-outline" size={18} color={colors.text} />
         </TouchableOpacity>
       </ThemedView>
       {/* 聊天内容 */}
@@ -289,20 +341,21 @@ const QAssistant = () => {
                 message.role === "user"
                   ? styles.userBubble
                   : styles.assistantBubble,
-                { backgroundColor: message.role === "user" ? colors.secondaryContainer : "white"}
+                {
+                  backgroundColor:
+                    message.role === "user"
+                      ? colors.secondaryContainer
+                      : "white",
+                },
               ]}
             >
               <ThemedText style={styles.messageRole}>
                 {message.role === "user" ? "你" : "Q助手"}
               </ThemedText>
-              <ThemedText style={styles.messageContent}>
+              <Markdown style={markdownStyles}>
                 {message.content}
-                {message.isStreaming && (
-                  <BlinkingText>
-                    ...
-                  </BlinkingText>
-                )}
-              </ThemedText>
+              </Markdown>
+              {message.isStreaming && <BlinkingText>...</BlinkingText>}
             </ThemedView>
           ))
         )}
@@ -323,7 +376,7 @@ const QAssistant = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
       >
-        <ThemedView style={styles.inputAreaContainer}>
+        <ThemedView style={[styles.inputAreaContainer, { borderColor: colors.outline }]}>
           {/* 图片预览 */}
           {selectedImage && (
             <View style={styles.imagePreviewContainer}>
@@ -335,7 +388,7 @@ const QAssistant = () => {
                 style={styles.removeImageBtn}
                 onPress={() => {
                   setSelectedImage(null);
-                  setQuickAskEnabled(false);
+                  // setQuickAskEnabled(false);
                   setQuickAsk("");
                 }}
               >
@@ -348,7 +401,7 @@ const QAssistant = () => {
             style={styles.inputPlain}
             value={input}
             onChangeText={setInput}
-            placeholder="输入消息..."
+            placeholder="给 Q助手 发送消息"
             placeholderTextColor="#999"
             editable={!isLoading}
             multiline
@@ -388,14 +441,6 @@ const QAssistant = () => {
           </View>
         </ThemedView>
       </KeyboardAvoidingView>
-      {/* API密钥设置提示 */}
-      {!API_KEY && (
-        <ThemedView style={styles.apiKeyWarning}>
-          <ThemedText style={styles.apiKeyWarningText}>
-            请设置有效的Q助手 API密钥
-          </ThemedText>
-        </ThemedView>
-      )}
     </ThemedView>
   );
 };
@@ -410,7 +455,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0ff",
   },
   title: {
     fontSize: 20,
@@ -497,7 +541,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
     borderTopWidth: 1,
-    borderTopColor: "#f0f0f0ff",
   },
   inputPlain: {
     backgroundColor: "transparent",
@@ -549,5 +592,56 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
 });
+
+const markdownStyles = {
+  // body: {
+  //   fontSize: 16,
+  //   color: '#333',
+  //   lineHeight: 22,
+  // },
+  // paragraph: {
+  //   marginTop: 0,
+  //   marginBottom: 8,
+  // },
+  // list_item: {
+  //   flexDirection: 'row',
+  //   alignItems: 'flex-start',
+  //   marginBottom: 4,
+  // },
+  // bullet_list: {
+  //   marginBottom: 8,
+  // },
+  // ordered_list: {
+  //   marginBottom: 8,
+  // },
+  // code_inline: {
+  //   backgroundColor: '#f5f5f5',
+  //   borderRadius: 4,
+  //   paddingHorizontal: 4,
+  //   fontFamily: 'monospace',
+  // },
+  // code_block: {
+  //   backgroundColor: '#f5f5f5',
+  //   borderRadius: 6,
+  //   padding: 8,
+  //   fontFamily: 'monospace',
+  //   marginBottom: 8,
+  // },
+  // heading1: {
+  //   fontSize: 20,
+  //   fontWeight: 'bold',
+  //   marginBottom: 8,
+  // },
+  // heading2: {
+  //   fontSize: 18,
+  //   fontWeight: 'bold',
+  //   marginBottom: 6,
+  // },
+  // heading3: {
+  //   fontSize: 16,
+  //   fontWeight: 'bold',
+  //   marginBottom: 4,
+  // },
+};
 
 export default QAssistant;
