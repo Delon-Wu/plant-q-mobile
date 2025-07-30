@@ -12,7 +12,7 @@ export interface ApiResponse<T> {
 
 // 创建实例
 const apiClient: AxiosInstance = axios.create({
-  baseURL: process.env.EXPO_PUBLIC_API_BASE_URL,
+  baseURL: store.getState().settings.baseURL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
