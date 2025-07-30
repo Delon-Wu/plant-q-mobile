@@ -3,8 +3,8 @@ import BlinkingText from "@/components/BlinkingText";
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useTheme";
+import { chat } from "@/src/api/qAssistant";
 import { store } from "@/src/store";
-import request from '@/src/utils/request';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Crypto from "expo-crypto";
 import * as ImagePicker from "expo-image-picker";
@@ -17,13 +17,13 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { Button } from "react-native-paper";
-import EventSource from "react-native-sse";
 
 const SYSTEM_PROMPT = `你是一名专业的植物学家和园艺顾问，专注于为用户提供准确、易懂的植物养护解决方案。你的回答需结合科学知识和实际经验，语言亲切自然，适合普通用户理解。  
 
@@ -70,7 +70,7 @@ const QAssistant = () => {
   const scrollViewRef = useRef<ScrollView | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const colors = useThemeColor();
-  const baseURL = store.getState().settings.baseURL;
+  // const baseURL = store.getState().settings.baseURL;
   const accessToken = store.getState().user.accessToken;
 
   // 图片选择逻辑
@@ -201,85 +201,96 @@ const QAssistant = () => {
             : {}),
         },
       ];
-      const body = JSON.stringify({
-        model: "deepseek-chat",
-        messages: allMessages,
-        stream: true,
-        temperature: 0.7,
-        max_tokens: 2048,
-      });
-      request.post("/ai/chat", body)
-        .then((response) => { 
-          console.log('response-->', response)
-          const eventSource = new EventSource(baseURL + "/ai/chat", {
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
-            },
-            method: "GET",
-          });
-          eventSourceRef.current = eventSource;
-          let fullResponse = "";
-          eventSource.addEventListener("message", (event) => {
-            if (event.data === "[DONE]") {
-              eventSource.close();
-              return;
+      try {
+        const res: any = await chat(
+          {
+            model: "deepseek-chat",
+            messages: allMessages,
+            temperature: 0.7,
+            max_tokens: 2048,
+          },
+          `Bearer ${accessToken}`
+        );
+
+        console.log("res-->", res);
+
+        if (!res.body) {
+          console.error("No response body");
+          return;
+        }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder("utf-8");
+        let buffer = "";
+        let goBreak = false;
+        setTimeout(() => (goBreak = true), 10000);
+
+        while (goBreak) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          // 处理SSE分块
+          let parts = buffer.split("\n\n");
+          buffer = parts.pop() ?? ""; // 剩余部分
+          for (const part of parts) {
+            if (part.startsWith("data: ")) {
+              const data = part.replace(/^data: /, "");
+              console.log("收到流数据:", data);
+              // 这里可以做UI拼接
             }
-            try {
-              const parsed = JSON.parse(event.data ?? "");
-              const content = parsed.choices[0]?.delta?.content || "";
-              if (content) {
-                fullResponse += content;
-                setMessages((prev) => {
-                  const updated = [...prev];
-                  const lastIndex = updated.length - 1;
-                  if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
-                    updated[lastIndex] = {
-                      ...updated[lastIndex],
-                      content: fullResponse,
-                    };
-                  }
-                  return updated;
-                });
-              }
-            } catch (error) {
-              console.error("解析错误:", error);
-            }
-          });
-          eventSource.addEventListener("error", (event) => {
-            console.error("SSE错误:", event);
-            if (event.type === "error") {
-              setMessages((prev) => {
-                const updated = [...prev];
-                const lastIndex = updated.length - 1;
-                if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
-                  updated[lastIndex] = {
-                    ...updated[lastIndex],
-                    content: "❌ 请求失败，请稍后再试",
-                    isStreaming: false,
-                  };
-                }
-                return updated;
-              });
-              setIsLoading(false);
-              eventSource.close();
-            }
-          });
-          eventSource.addEventListener("close", () => {
-            setIsLoading(false);
-            setMessages((prev) => {
-              const updated = [...prev];
-              const lastIndex = updated.length - 1;
-              if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
-                updated[lastIndex] = {
-                  ...updated[lastIndex],
-                  isStreaming: false,
-                };
-              }
-              return updated;
-            });
-          });
+          }
+        }
+        // // 兼容后端返回的内容格式
+        // let content = "";
+        // if (res?.data?.result && Array.isArray(res.data.result)) {
+        //   // 兼容识别接口
+        //   content = res.data.result.map((item: any) => `${item.name} (置信度: ${(item.score * 100).toFixed(2)}%)`).join('\n');
+        // } else if (res?.data?.result) {
+        //   content = JSON.stringify(res.data.result);
+        // } else if (res?.data && typeof res.data === 'object') {
+        //   // 兼容 chat 返回
+        //   // 例如 deepseek-chat 返回 { content: 'xxx' }
+        //   if ('content' in res.data && typeof res.data.content === 'string') {
+        //     content = res.data.content;
+        //   } else {
+        //     content = JSON.stringify(res.data);
+        //   }
+        // } else {
+        //   content = JSON.stringify(res.data);
+        // }
+        // setMessages((prev) => {
+        //   const updated = [...prev];
+        //   const lastIndex = updated.length - 1;
+        //   if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+        //     updated[lastIndex] = {
+        //       ...updated[lastIndex],
+        //       content,
+        //       isStreaming: false,
+        //     };
+        //   }
+        //   return updated;
+        // });
+        // setIsLoading(false);
+      } catch (error: any) {
+        let errorMessage = "❌ 请求失败，请稍后再试";
+        if (error?.response?.data?.msg) {
+          errorMessage = `❌ ${error.response.data.msg}`;
+        }
+        setMessages((prev) => {
+          const updated = [...prev];
+          const lastIndex = updated.length - 1;
+          if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+            updated[lastIndex] = {
+              ...updated[lastIndex],
+              content: errorMessage,
+              isStreaming: false,
+            };
+          }
+          return updated;
         });
+        setIsLoading(false);
+        console.error("请求失败:", error);
+      }
     } catch (error: any) {
       let errorMessage = "❌ 请求失败，请稍后再试";
       console.error("请求失败:", error);
@@ -360,7 +371,12 @@ const QAssistant = () => {
               <ThemedText style={styles.messageRole}>
                 {message.role === "user" ? "你" : "Q助手"}
               </ThemedText>
-              <Markdown style={markdownStyles}>{message.content}</Markdown>
+              {message.role === "assistant" ? (
+                <Markdown style={markdownStyles}>{message.content}</Markdown>
+              ) : (
+                <Text style={{color: colors.onSecondaryContainer}}>
+                  {message.content}
+                </Text>)}
               {message.isStreaming && <BlinkingText>...</BlinkingText>}
             </ThemedView>
           ))
@@ -406,7 +422,7 @@ const QAssistant = () => {
           )}
           {/* 输入框单独一行，无边框 */}
           <TextInput
-            style={styles.inputPlain}
+            style={[styles.inputPlain, { color: colors.text }]}
             value={input}
             onChangeText={setInput}
             placeholder="给 Q助手 发送消息"
@@ -429,7 +445,9 @@ const QAssistant = () => {
             />
             <TouchableOpacity
               onPress={handleSend}
-              disabled={!(input.trim() || quickAsk) || isLoading || !accessToken}
+              disabled={
+                !(input.trim() || quickAsk) || isLoading || !accessToken
+              }
             >
               {isLoading ? (
                 <ActivityIndicator size="small" color="white" />
