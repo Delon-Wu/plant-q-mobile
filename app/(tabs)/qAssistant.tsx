@@ -3,7 +3,8 @@ import BlinkingText from "@/components/BlinkingText";
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useTheme";
-import { DEEPSEEK_API_ADDRESS } from "@/src/constants/common";
+import { store } from "@/src/store";
+import request from '@/src/utils/request';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Crypto from "expo-crypto";
 import * as ImagePicker from "expo-image-picker";
@@ -20,7 +21,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Markdown from 'react-native-markdown-display';
+import Markdown from "react-native-markdown-display";
 import { Button } from "react-native-paper";
 import EventSource from "react-native-sse";
 
@@ -68,17 +69,19 @@ const QAssistant = () => {
   const [showImageSelect, setShowImageSelect] = useState(false);
   const scrollViewRef = useRef<ScrollView | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
-  const API_KEY = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY; // TODO: 通过加密方式存储和获取API密钥
   const colors = useThemeColor();
+  const baseURL = store.getState().settings.baseURL;
+  const accessToken = store.getState().user.accessToken;
 
   // 图片选择逻辑
   const takePhoto = async () => {
+    setShowImageSelect(false);
     // 1. 先请求相机权限
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("权限不足", "请在设置中允许访问相机以拍摄照片。");
-      return;
-    }
+    // const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    // if (status !== "granted") {
+    //   Alert.alert("权限不足", "请在设置中允许访问相机以拍摄照片。");
+    //   return;
+    // }
     // 2. 打开相机
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: "images",
@@ -86,6 +89,7 @@ const QAssistant = () => {
       aspect: [4, 3],
       quality: 1,
     });
+    console.log("image result-->", result);
     if (!result.canceled && result.assets?.[0]?.uri) {
       setSelectedImage(result.assets[0].uri);
       // setQuickAskEnabled(true);
@@ -93,6 +97,7 @@ const QAssistant = () => {
   };
 
   const choosePhoto = async () => {
+    setShowImageSelect(false);
     // 1. 先请求权限
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -129,7 +134,7 @@ const QAssistant = () => {
 
   // 发送逻辑
   const handleSend = async () => {
-    if ((!input.trim() && !quickAsk) || isLoading || !API_KEY) return;
+    if ((!input.trim() && !quickAsk) || isLoading || !accessToken) return;
     let content = input;
     // 如果有快速提问，优先发送快速提问内容
     if (quickAsk) {
@@ -203,75 +208,78 @@ const QAssistant = () => {
         temperature: 0.7,
         max_tokens: 2048,
       });
-      const eventSource = new EventSource(DEEPSEEK_API_ADDRESS, {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${API_KEY}`,
-        },
-        method: "POST",
-        body: body,
-      });
-      eventSourceRef.current = eventSource;
-      let fullResponse = "";
-      eventSource.addEventListener("message", (event) => {
-        if (event.data === "[DONE]") {
-          eventSource.close();
-          return;
-        }
-        try {
-          const parsed = JSON.parse(event.data ?? "");
-          const content = parsed.choices[0]?.delta?.content || "";
-          if (content) {
-            fullResponse += content;
+      request.post("/ai/chat", body)
+        .then((response) => { 
+          console.log('response-->', response)
+          const eventSource = new EventSource(baseURL + "/ai/chat", {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            method: "GET",
+          });
+          eventSourceRef.current = eventSource;
+          let fullResponse = "";
+          eventSource.addEventListener("message", (event) => {
+            if (event.data === "[DONE]") {
+              eventSource.close();
+              return;
+            }
+            try {
+              const parsed = JSON.parse(event.data ?? "");
+              const content = parsed.choices[0]?.delta?.content || "";
+              if (content) {
+                fullResponse += content;
+                setMessages((prev) => {
+                  const updated = [...prev];
+                  const lastIndex = updated.length - 1;
+                  if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+                    updated[lastIndex] = {
+                      ...updated[lastIndex],
+                      content: fullResponse,
+                    };
+                  }
+                  return updated;
+                });
+              }
+            } catch (error) {
+              console.error("解析错误:", error);
+            }
+          });
+          eventSource.addEventListener("error", (event) => {
+            console.error("SSE错误:", event);
+            if (event.type === "error") {
+              setMessages((prev) => {
+                const updated = [...prev];
+                const lastIndex = updated.length - 1;
+                if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+                  updated[lastIndex] = {
+                    ...updated[lastIndex],
+                    content: "❌ 请求失败，请稍后再试",
+                    isStreaming: false,
+                  };
+                }
+                return updated;
+              });
+              setIsLoading(false);
+              eventSource.close();
+            }
+          });
+          eventSource.addEventListener("close", () => {
+            setIsLoading(false);
             setMessages((prev) => {
               const updated = [...prev];
               const lastIndex = updated.length - 1;
               if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
                 updated[lastIndex] = {
                   ...updated[lastIndex],
-                  content: fullResponse,
+                  isStreaming: false,
                 };
               }
               return updated;
             });
-          }
-        } catch (error) {
-          console.error("解析错误:", error);
-        }
-      });
-      eventSource.addEventListener("error", (event) => {
-        console.error("SSE错误:", event);
-        if (event.type === "error") {
-          setMessages((prev) => {
-            const updated = [...prev];
-            const lastIndex = updated.length - 1;
-            if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
-              updated[lastIndex] = {
-                ...updated[lastIndex],
-                content: "❌ 请求失败，请稍后再试",
-                isStreaming: false,
-              };
-            }
-            return updated;
           });
-          setIsLoading(false);
-          eventSource.close();
-        }
-      });
-      eventSource.addEventListener("close", () => {
-        setIsLoading(false);
-        setMessages((prev) => {
-          const updated = [...prev];
-          const lastIndex = updated.length - 1;
-          if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
-            updated[lastIndex] = {
-              ...updated[lastIndex],
-              isStreaming: false,
-            };
-          }
-          return updated;
         });
-      });
     } catch (error: any) {
       let errorMessage = "❌ 请求失败，请稍后再试";
       console.error("请求失败:", error);
@@ -311,7 +319,7 @@ const QAssistant = () => {
   return (
     <ThemedView style={styles.container}>
       {/* 标题栏 */}
-      <ThemedView style={[styles.header, { borderColor: colors.outline}]}>
+      <ThemedView style={[styles.header, { borderColor: colors.outline }]}>
         <ThemedText style={styles.title}>Q助手</ThemedText>
         <TouchableOpacity onPress={clearChat}>
           <Ionicons name="trash-outline" size={18} color={colors.text} />
@@ -352,9 +360,7 @@ const QAssistant = () => {
               <ThemedText style={styles.messageRole}>
                 {message.role === "user" ? "你" : "Q助手"}
               </ThemedText>
-              <Markdown style={markdownStyles}>
-                {message.content}
-              </Markdown>
+              <Markdown style={markdownStyles}>{message.content}</Markdown>
               {message.isStreaming && <BlinkingText>...</BlinkingText>}
             </ThemedView>
           ))
@@ -376,7 +382,9 @@ const QAssistant = () => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
       >
-        <ThemedView style={[styles.inputAreaContainer, { borderColor: colors.outline }]}>
+        <ThemedView
+          style={[styles.inputAreaContainer, { borderColor: colors.outline }]}
+        >
           {/* 图片预览 */}
           {selectedImage && (
             <View style={styles.imagePreviewContainer}>
@@ -407,7 +415,6 @@ const QAssistant = () => {
             multiline
           />
           <View style={styles.chatToolRow}>
-            {/* TODO: 使用gluestack 的acionsheet组件来实现 */}
             <TouchableOpacity
               style={styles.imageAddBtn}
               onPress={() => setShowImageSelect(!showImageSelect)}
@@ -422,7 +429,7 @@ const QAssistant = () => {
             />
             <TouchableOpacity
               onPress={handleSend}
-              disabled={!(input.trim() || quickAsk) || isLoading || !API_KEY}
+              disabled={!(input.trim() || quickAsk) || isLoading || !accessToken}
             >
               {isLoading ? (
                 <ActivityIndicator size="small" color="white" />
@@ -431,7 +438,7 @@ const QAssistant = () => {
                   name="send"
                   size={28}
                   color={
-                    !(input.trim() || quickAsk) || isLoading || !API_KEY
+                    !(input.trim() || quickAsk) || isLoading || !accessToken
                       ? colors.surfaceDisabled
                       : colors.primary
                   }

@@ -289,8 +289,3 @@ export const PLANT_CARE_RULES: PlantRule[] = [
     }
   }
 ]
-
-/**
- * DeepSeek API 地址
- */
-export const DEEPSEEK_API_ADDRESS = "https://api.deepseek.com/chat/completions";
