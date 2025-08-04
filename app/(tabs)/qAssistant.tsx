@@ -3,8 +3,9 @@ import BlinkingText from "@/components/BlinkingText";
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useTheme";
-import { chat } from "@/src/api/qAssistant";
-import { store } from "@/src/store";
+import { plantRecogonize } from "@/src/api/qAssistant";
+import { DEEPSEEK_API_ADDRESS } from "@/src/constants/common";
+import { RootState } from "@/src/store";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Crypto from "expo-crypto";
 import * as ImagePicker from "expo-image-picker";
@@ -17,13 +18,14 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import Markdown from "react-native-markdown-display";
 import { Button } from "react-native-paper";
+import EventSource from "react-native-sse";
+import { useSelector } from "react-redux";
 
 const SYSTEM_PROMPT = `你是一名专业的植物学家和园艺顾问，专注于为用户提供准确、易懂的植物养护解决方案。你的回答需结合科学知识和实际经验，语言亲切自然，适合普通用户理解。  
 
@@ -44,6 +46,9 @@ const SYSTEM_PROMPT = `你是一名专业的植物学家和园艺顾问，专注
 **禁止事项：**  
 - 避免模糊表述（如“多浇水”），需量化建议（如“夏季每周浇水3次”）。  
 - 不回答与植物无关的问题。`;
+const MAXIMUM_MESSAGE = 8; // 最多保留最近8条消息
+const MAX_TOKENS = 2048; // 最大token数
+const DEFAULT_TEMPERATURE = 0.7; // 默认温度设置
 
 interface MessageLine {
   function_call?: {
@@ -53,6 +58,7 @@ interface MessageLine {
     };
   };
   isStreaming?: boolean;
+  image?: string; // 用于存储图片的URI
   id: string;
   role: string;
   content: string;
@@ -69,19 +75,19 @@ const QAssistant = () => {
   const [showImageSelect, setShowImageSelect] = useState(false);
   const scrollViewRef = useRef<ScrollView | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const API_KEY = process.env.EXPO_PUBLIC_DEEPSEEK_API_KEY; // TODO: 通过加密方式存储和获取API密钥
   const colors = useThemeColor();
   // const baseURL = store.getState().settings.baseURL;
-  const accessToken = store.getState().user.accessToken;
+  const accessToken = useSelector((state: RootState) => state.user.accessToken);
 
   // 图片选择逻辑
   const takePhoto = async () => {
-    setShowImageSelect(false);
     // 1. 先请求相机权限
-    // const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    // if (status !== "granted") {
-    //   Alert.alert("权限不足", "请在设置中允许访问相机以拍摄照片。");
-    //   return;
-    // }
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert("权限不足", "请在设置中允许访问相机以拍摄照片。");
+      return;
+    }
     // 2. 打开相机
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: "images",
@@ -89,7 +95,6 @@ const QAssistant = () => {
       aspect: [4, 3],
       quality: 1,
     });
-    console.log("image result-->", result);
     if (!result.canceled && result.assets?.[0]?.uri) {
       setSelectedImage(result.assets[0].uri);
       // setQuickAskEnabled(true);
@@ -97,7 +102,6 @@ const QAssistant = () => {
   };
 
   const choosePhoto = async () => {
-    setShowImageSelect(false);
     // 1. 先请求权限
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -186,13 +190,8 @@ const QAssistant = () => {
         role: "system",
         content: SYSTEM_PROMPT,
       };
-      const allMessages = [
-        systemPrompt,
-        ...messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-          ...(msg.function_call ? { function_call: msg.function_call } : {}),
-        })),
+      const recentMessages = [
+        ...messages,
         {
           role: userMessage.role,
           content: userMessage.content,
@@ -201,101 +200,95 @@ const QAssistant = () => {
             : {}),
         },
       ];
-      try {
-        const res: any = await chat(
-          {
-            model: "deepseek-chat",
-            messages: allMessages,
-            temperature: 0.7,
-            max_tokens: 2048,
-          },
-          `Bearer ${accessToken}`
-        );
-
-        console.log("res-->", res);
-
-        if (!res.body) {
-          console.error("No response body");
+      const allMessages = [
+        systemPrompt,
+        ...recentMessages.slice(-MAXIMUM_MESSAGE).map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+          ...(msg.function_call ? { function_call: msg.function_call } : {}),
+        })),
+      ];
+      const body = JSON.stringify({
+        model: "deepseek-chat",
+        messages: allMessages,
+        stream: true,
+        temperature: DEFAULT_TEMPERATURE,
+        max_tokens: MAX_TOKENS,
+      });
+      const eventSource = new EventSource(DEEPSEEK_API_ADDRESS, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${API_KEY}`,
+        },
+        method: "POST",
+        body: body,
+      });
+      eventSourceRef.current = eventSource;
+      let fullResponse = "";
+      eventSource.addEventListener("message", (event) => {
+        if (event.data === "[DONE]") {
+          eventSource.close();
           return;
         }
-
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let buffer = "";
-        let goBreak = false;
-        setTimeout(() => (goBreak = true), 10000);
-
-        while (goBreak) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          // 处理SSE分块
-          let parts = buffer.split("\n\n");
-          buffer = parts.pop() ?? ""; // 剩余部分
-          for (const part of parts) {
-            if (part.startsWith("data: ")) {
-              const data = part.replace(/^data: /, "");
-              console.log("收到流数据:", data);
-              // 这里可以做UI拼接
-            }
+        try {
+          const parsed = JSON.parse(event.data ?? "");
+          const content = parsed.choices[0]?.delta?.content || "";
+          if (content) {
+            fullResponse += content;
+            setMessages((prev) => {
+              const updated = [...prev];
+              const lastIndex = updated.length - 1;
+              if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+                updated[lastIndex] = {
+                  ...updated[lastIndex],
+                  content: fullResponse,
+                };
+              }
+              return updated;
+            });
           }
+        } catch (error) {
+          console.error("解析错误:", error);
         }
-        // // 兼容后端返回的内容格式
-        // let content = "";
-        // if (res?.data?.result && Array.isArray(res.data.result)) {
-        //   // 兼容识别接口
-        //   content = res.data.result.map((item: any) => `${item.name} (置信度: ${(item.score * 100).toFixed(2)}%)`).join('\n');
-        // } else if (res?.data?.result) {
-        //   content = JSON.stringify(res.data.result);
-        // } else if (res?.data && typeof res.data === 'object') {
-        //   // 兼容 chat 返回
-        //   // 例如 deepseek-chat 返回 { content: 'xxx' }
-        //   if ('content' in res.data && typeof res.data.content === 'string') {
-        //     content = res.data.content;
-        //   } else {
-        //     content = JSON.stringify(res.data);
-        //   }
-        // } else {
-        //   content = JSON.stringify(res.data);
-        // }
-        // setMessages((prev) => {
-        //   const updated = [...prev];
-        //   const lastIndex = updated.length - 1;
-        //   if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
-        //     updated[lastIndex] = {
-        //       ...updated[lastIndex],
-        //       content,
-        //       isStreaming: false,
-        //     };
-        //   }
-        //   return updated;
-        // });
-        // setIsLoading(false);
-      } catch (error: any) {
-        let errorMessage = "❌ 请求失败，请稍后再试";
-        if (error?.response?.data?.msg) {
-          errorMessage = `❌ ${error.response.data.msg}`;
+      });
+      eventSource.addEventListener("error", (event) => {
+        console.error("SSE错误:", event);
+        if (event.type === "error") {
+          setMessages((prev) => {
+            const updated = [...prev];
+            const lastIndex = updated.length - 1;
+            if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
+              updated[lastIndex] = {
+                ...updated[lastIndex],
+                content: "❌ 请求失败，请稍后再试",
+                isStreaming: false,
+              };
+            }
+            return updated;
+          });
+          setIsLoading(false);
+          eventSource.close();
         }
+      });
+      eventSource.addEventListener("close", () => {
+        setIsLoading(false);
         setMessages((prev) => {
           const updated = [...prev];
           const lastIndex = updated.length - 1;
           if (lastIndex >= 0 && updated[lastIndex].role === "assistant") {
             updated[lastIndex] = {
               ...updated[lastIndex],
-              content: errorMessage,
               isStreaming: false,
             };
           }
           return updated;
         });
-        setIsLoading(false);
-        console.error("请求失败:", error);
-      }
+      });
     } catch (error: any) {
       let errorMessage = "❌ 请求失败，请稍后再试";
       console.error("请求失败:", error);
       setIsLoading(false);
-      if (error?.status === 401) {
+      if (error?.status === 402) {
         errorMessage = "啊哦，预算花完了，功能暂时停用，请耐心等待再次开放~ 😊";
       }
       setMessages((prev) => {
@@ -311,6 +304,56 @@ const QAssistant = () => {
         return updated;
       });
     }
+  };
+
+  const askPlantVariety = async () => {
+    if (!selectedImage) return;
+    const question = "请帮我识别这张图片中的植物品种。";
+    const userMessage = {
+      id: await Crypto.digestStringAsync(
+        Crypto.CryptoDigestAlgorithm.SHA256,
+        `${Date.now()}-user-img`
+      ),
+      role: "user",
+      content: question,
+      timestamp: new Date().toISOString(),
+      image: selectedImage,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", selectedImage);
+      setSelectedImage(null);
+      // @ts-ignore
+      const res = await plantRecogonize(formData);
+      let resultText = res?.data.result;
+      if (res?.data?.most_likely_kind) {
+        resultText = resultText + "\n是否需要进一步了解该植物？";
+      }
+      const aiMessage = {
+        id: await Crypto.digestStringAsync(
+          Crypto.CryptoDigestAlgorithm.SHA256,
+          `${Date.now()}-ai-img`
+        ),
+        role: "assistant",
+        content: resultText,
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    } catch {
+      const aiMessage = {
+        id: await Crypto.digestStringAsync(
+          Crypto.CryptoDigestAlgorithm.SHA256,
+          `${Date.now()}-ai-img-err`
+        ),
+        role: "assistant",
+        content: "❌ 图片识别失败，请稍后再试。",
+        timestamp: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    }
+    setIsLoading(false);
   };
 
   // 滚动到底部
@@ -348,7 +391,9 @@ const QAssistant = () => {
               我是 Q助手，很高兴见到你！
             </ThemedText>
             <ThemedText style={styles.welcomeText}>
-              我可以帮你回答关于植物的问题，或者提供一些有趣的植物知识。你可以直接输入问题，或者使用下面的按钮上传图片来获取植物识别结果。
+              {accessToken
+                ? "我可以帮你回答关于植物的问题，或者提供一些有趣的植物知识。你可以直接输入问题，或者使用下面的按钮上传图片来获取植物识别结果。"
+                : "请先登录"}
             </ThemedText>
           </ThemedView>
         ) : (
@@ -371,12 +416,13 @@ const QAssistant = () => {
               <ThemedText style={styles.messageRole}>
                 {message.role === "user" ? "你" : "Q助手"}
               </ThemedText>
-              {message.role === "assistant" ? (
-                <Markdown style={markdownStyles}>{message.content}</Markdown>
-              ) : (
-                <Text style={{color: colors.onSecondaryContainer}}>
-                  {message.content}
-                </Text>)}
+              {message.image && (
+                <Image
+                  source={{ uri: message.image }}
+                  style={styles.imagePreview}
+                />
+              )}
+              <Markdown style={markdownStyles}>{message.content}</Markdown>
               {message.isStreaming && <BlinkingText>...</BlinkingText>}
             </ThemedView>
           ))
@@ -387,7 +433,7 @@ const QAssistant = () => {
         <Button
           mode="outlined"
           disabled={!selectedImage}
-          onPress={() => {}}
+          onPress={askPlantVariety}
           style={styles.inlineButton}
         >
           问植物类型
@@ -422,7 +468,7 @@ const QAssistant = () => {
           )}
           {/* 输入框单独一行，无边框 */}
           <TextInput
-            style={[styles.inputPlain, { color: colors.text }]}
+            style={styles.inputPlain}
             value={input}
             onChangeText={setInput}
             placeholder="给 Q助手 发送消息"
@@ -434,7 +480,7 @@ const QAssistant = () => {
             <TouchableOpacity
               style={styles.imageAddBtn}
               onPress={() => setShowImageSelect(!showImageSelect)}
-              disabled={isLoading}
+              disabled={isLoading || !accessToken}
             >
               <Ionicons name="camera-outline" size={28} color={colors.text} />
             </TouchableOpacity>
