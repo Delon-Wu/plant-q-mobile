@@ -14,9 +14,6 @@ export interface ApiResponse<T> {
 const apiClient: AxiosInstance = axios.create({
   baseURL: store.getState().settings.baseURL,
   timeout: 30000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 export enum WhiteList {

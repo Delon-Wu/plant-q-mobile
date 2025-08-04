@@ -318,6 +318,9 @@ export default function HomeScreen() {
             )}
           </View>
         </ScrollView>
+
+        {/* TODO: 没有植物时显示占位图 */}
+        <ThemedText type="subtitle">我的植物</ThemedText>
       </ThemedScrollView>
       <FAB
         icon="plus"

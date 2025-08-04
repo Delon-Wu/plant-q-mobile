@@ -3,11 +3,12 @@ import { AccessToken, RefreshToken } from '@/src/constants/localStorageKey';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '.';
 import { setToken, setUserBasicInfo } from './userSlice';
 
 export default function useInitUser() {
   const dispatch = useDispatch();
-  const userInfo = useSelector((state: any) => state.user);
+  const userInfo = useSelector((state: RootState) => state.user);
   
   useEffect(() => {
     (async () => {
