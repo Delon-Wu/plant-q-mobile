@@ -27,7 +27,7 @@ import { Button } from "react-native-paper";
 import EventSource from "react-native-sse";
 import { useSelector } from "react-redux";
 
-const SYSTEM_PROMPT = `你是一名专业的植物学家和园艺顾问，专注于为用户提供准确、易懂的植物养护解决方案。你的回答需结合科学知识和实际经验，语言亲切自然，适合普通用户理解。  
+const SYSTEM_PROMPT = `你是一名专业的植物学家和园艺顾问(Q助手)，专注于为用户提供准确、易懂的植物养护解决方案。你的回答需结合科学知识和实际经验，语言亲切自然，适合普通用户理解。  
 
 **回答要求：**  
 1. **精准性**：根据用户提供的植物名称（如用户未说明，需主动询问）给出针对性建议，避免笼统回答。  
@@ -70,7 +70,6 @@ const QAssistant = () => {
   const [messages, setMessages] = useState<MessageLine[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  // const [quickAskEnabled, setQuickAskEnabled] = useState(false);
   const [quickAsk, setQuickAsk] = useState("");
   const [showImageSelect, setShowImageSelect] = useState(false);
   const scrollViewRef = useRef<ScrollView | null>(null);
@@ -92,16 +91,16 @@ const QAssistant = () => {
     const result = await ImagePicker.launchCameraAsync({
       mediaTypes: "images",
       allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
+      quality: 0.8, // 降低质量以减小文件大小
     });
     if (!result.canceled && result.assets?.[0]?.uri) {
+      setShowImageSelect(false);
       setSelectedImage(result.assets[0].uri);
-      // setQuickAskEnabled(true);
     }
   };
 
   const choosePhoto = async () => {
+    console.log('-------------------Choose Photo-----------------')
     // 1. 先请求权限
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== "granted") {
@@ -112,12 +111,12 @@ const QAssistant = () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: "images",
       allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
+      quality: 0.8, // 降低质量以减小文件大小
     });
+    
     if (!result.canceled && result.assets?.[0]?.uri) {
+      setShowImageSelect(false);
       setSelectedImage(result.assets[0].uri);
-      // setQuickAskEnabled(true);
     }
   };
 
@@ -323,9 +322,34 @@ const QAssistant = () => {
     setIsLoading(true);
     try {
       const formData = new FormData();
-      formData.append("image", selectedImage);
+      
+      if (Platform.OS === 'web') {
+        // Web 端直接传 base64 字符串
+        formData.append('image', selectedImage);
+      } else {
+        // 移动端：确保文件对象格式正确
+        const uri = selectedImage;
+        const fileName = uri?.split('/').pop() || 'photo.jpg';
+        
+        // 根据文件扩展名判断 MIME 类型
+        let fileType = 'image/jpeg';
+        if (fileName.toLowerCase().includes('.png')) {
+          fileType = 'image/png';
+        } else if (fileName.toLowerCase().includes('.gif')) {
+          fileType = 'image/gif';
+        }
+        
+        // React Native FormData 需要这种格式
+        formData.append('image', {
+          uri: uri,
+          name: fileName,
+          type: fileType,
+        } as any);
+      }
+      
+      console.log('FormData ready, calling plantRecogonize...');
       setSelectedImage(null);
-      // @ts-ignore
+      
       const res = await plantRecogonize(formData);
       let resultText = res?.data.result;
       if (res?.data?.most_likely_kind) {
@@ -341,14 +365,31 @@ const QAssistant = () => {
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, aiMessage]);
-    } catch {
+    } catch (error: any) {
+      console.error('植物识别请求失败:', error);
+      console.error('错误详情:', {
+        message: error?.message,
+        response: error?.response?.data,
+        status: error?.response?.status,
+        code: error?.code
+      });
+      
+      let errorMessage = "❌ 图片识别失败，请稍后再试。";
+      if (error?.code === 'ERR_NETWORK') {
+        errorMessage = "❌ 网络连接失败，请检查网络设置。";
+      } else if (error?.response?.status === 413) {
+        errorMessage = "❌ 图片文件过大，请选择较小的图片。";
+      } else if (error?.response?.data?.message) {
+        errorMessage = `❌ ${error.response.data.message}`;
+      }
+      
       const aiMessage = {
         id: await Crypto.digestStringAsync(
           Crypto.CryptoDigestAlgorithm.SHA256,
           `${Date.now()}-ai-img-err`
         ),
         role: "assistant",
-        content: "❌ 图片识别失败，请稍后再试。",
+        content: errorMessage,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, aiMessage]);
@@ -458,7 +499,6 @@ const QAssistant = () => {
                 style={styles.removeImageBtn}
                 onPress={() => {
                   setSelectedImage(null);
-                  // setQuickAskEnabled(false);
                   setQuickAsk("");
                 }}
               >
@@ -468,12 +508,12 @@ const QAssistant = () => {
           )}
           {/* 输入框单独一行，无边框 */}
           <TextInput
-            style={styles.inputPlain}
+            style={[styles.inputPlain, { color: colors.text }]}
             value={input}
             onChangeText={setInput}
             placeholder="给 Q助手 发送消息"
             placeholderTextColor="#999"
-            editable={!isLoading}
+            editable={!isLoading != !accessToken}
             multiline
           />
           <View style={styles.chatToolRow}>
