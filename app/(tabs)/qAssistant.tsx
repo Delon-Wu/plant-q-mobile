@@ -3,6 +3,7 @@ import BlinkingText from "@/components/BlinkingText";
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useTheme";
+import { track } from "@/src/api/foundation";
 import { plantRecogonize } from "@/src/api/qAssistant";
 import { DEEPSEEK_API_ADDRESS } from "@/src/constants/common";
 import { RootState } from "@/src/store";
@@ -222,6 +223,10 @@ const QAssistant = () => {
         method: "POST",
         body: body,
       });
+      track({
+        event: "Q助手请求发送信息",
+        detail: content,
+      });
       eventSourceRef.current = eventSource;
       let fullResponse = "";
       eventSource.addEventListener("message", (event) => {
@@ -351,6 +356,11 @@ const QAssistant = () => {
       setSelectedImage(null);
       
       const res = await plantRecogonize(formData);
+      track({
+        event: "植物识别请求成功",
+        detail: (res?.data?.most_likely_kind || "无结果"),
+      });
+      console.log('植物识别结果:', res?.data);
       let resultText = res?.data.result;
       if (res?.data?.most_likely_kind) {
         resultText = resultText + "\n是否需要进一步了解该植物？";
@@ -366,6 +376,10 @@ const QAssistant = () => {
       };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (error: any) {
+      track({
+        event: "植物识别请求失败",
+        detail: error?.response?.data?.error,
+      });
       console.error('植物识别请求失败:', error);
       console.error('错误详情:', {
         message: error?.message,
@@ -378,7 +392,7 @@ const QAssistant = () => {
       if (error?.code === 'ERR_NETWORK') {
         errorMessage = "❌ 网络连接失败，请检查网络设置。";
       } else if (error?.response?.status === 413) {
-        errorMessage = "❌ 图片文件过大，请选择较小的图片。";
+        errorMessage = "❌ " + error.response.data.error || "图片过大，或格式不支持，请尝试其他图片。";
       } else if (error?.response?.data?.message) {
         errorMessage = `❌ ${error.response.data.message}`;
       }
