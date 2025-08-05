@@ -1,11 +1,25 @@
 import request from '@/src/utils/request';
 
+type Plant = {
+  name: string;
+  id: string | number;
+  cover: string;
+  records: {
+    "id": number | string,
+    "plant": number | string,
+    "image": string;
+    "record_time": string;
+    "remark": string;
+    "created_at": string;
+  }[],
+  created_at: string
+}
 export function plantList() {
-  return request.get<{ name: string; id: string; cover: string; timeLine: any[], created_at: string }[]>('/plant/plants/');
+  return request.get<Plant[]>('/plant/plants/');
 }
 
 export function getPlantDetail(id: string) {
-  return request.get(`/plant/plants/${id}/`);
+  return request.get<Plant>(`/plant/plants/${id}/`);
 }
 
 export function updatePlant(id: string, data: any) {
