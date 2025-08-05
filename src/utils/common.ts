@@ -1,3 +1,5 @@
+import * as ImagePicker from "expo-image-picker";
+import { Alert } from "react-native";
 import { PLANT_CARE_RULES } from "../constants/common";
 import { AdviceItem, ForecastDay, PlantRule, PlantType, Season, WeatherData } from "../types/common";
 
@@ -178,7 +180,7 @@ function checkPestAlert(weather_data: WeatherData): boolean {
   return false;
 }
 
-export const getSeasonAdvice = (season?: Season): string[] => { 
+export const getSeasonAdvice = (season?: Season): string[] => {
   if (!season) {
     season = getCurrentSeason(new Date());
   }
@@ -200,4 +202,97 @@ export const getSeasonAdvice = (season?: Season): string[] => {
     return `${plant_rule.plant_type} (${plant_rule.examples.join("、")})：${plant_rule.advice}`;
   })
   return adviceResult;
+}
+
+
+// 图片选择逻辑
+export const takePhoto = async (callback?: (uri: string) => void, options: ImagePicker.ImagePickerOptions = {}) => {
+  // 1. 先请求相机权限
+  const { status } = await ImagePicker.requestCameraPermissionsAsync();
+  if (status !== "granted") {
+    Alert.alert("权限不足", "请在设置中允许访问相机以拍摄照片。");
+    return;
+  }
+  // 2. 打开相机
+  const result = await ImagePicker.launchCameraAsync({
+    mediaTypes: "images",
+    allowsEditing: true,
+    quality: 0.8, // 降低质量以减小文件大小
+    ...options,
+  });
+  if (!result.canceled && result.assets?.[0]?.uri && callback) {
+    callback(result.assets[0].uri); // 调用回调函数
+  }
+};
+
+export const choosePhoto = async (callback?: (uri: string) => void, options: ImagePicker.ImagePickerOptions = {}) => {
+  // 1. 先请求权限
+  const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (status !== "granted") {
+    Alert.alert("权限不足", "请在设置中允许访问相册以选择图片。");
+    return;
+  }
+  // 2. 打开相册
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: "images",
+    allowsEditing: true,
+    quality: 0.8, // 降低质量以减小文件大小
+    ...options
+  });
+
+  if (!result.canceled && result.assets?.[0]?.uri && callback) {
+    callback(result.assets[0].uri); // 调用回调函数
+  }
+};
+
+// web端：选择图片
+export const choosePhotoWeb = async (): Promise<File> => {
+  // Web端图片选择，使用expo-image-picker
+  // 注意：expo-image-picker的launchImageLibraryAsync在Web端返回base64或blob URL
+  const result = await ImagePicker.launchImageLibraryAsync({
+    mediaTypes: 'images',
+    allowsEditing: true,
+    quality: 0.8,
+    base64: false,
+  });
+  if (result.canceled || !result.assets?.[0]?.uri) {
+    throw new Error('未选择图片');
+  }
+  const asset = result.assets[0];
+  // fetch图片内容转为blob
+  const response = await fetch(asset.uri);
+  const blob = await response.blob();
+  // 获取文件名和类型
+  const fileName = asset.fileName || asset.uri.split('/').pop() || `photo_${Date.now()}.jpg`;
+  const fileType = blob.type || 'image/jpeg';
+  // 构造File对象
+  return Promise.resolve(new File([blob], fileName, { type: fileType }));
+}
+
+// 获取文件对象
+export const getFileObject = (uri: string): File => {
+  if (!uri) {
+    throw new Error("URI不能为空");
+  }
+  // 移动端：确保文件对象格式正确
+  const fileName = uri?.split('/').pop() || `photo_${Date.now()}.jpg`;
+
+  // 根据文件扩展名判断 MIME 类型
+  let fileType = 'image/jpeg';
+  if (fileName.toLowerCase().includes('.png')) {
+    fileType = 'image/png';
+  } else if (fileName.toLowerCase().includes('.gif')) {
+    fileType = 'image/gif';
+  } else if (fileName.toLowerCase().includes('.webp')) {
+    fileType = 'image/webp';
+  } else if (fileName.toLowerCase().includes('.svg')) {
+    fileType = 'image/svg+xml';
+  } else if (fileName.toLowerCase().includes('.bmp')) {
+    fileType = 'image/bmp';
+  } else if (fileName.toLowerCase().includes('.tiff')) {
+    fileType = 'image/tiff';
+  } else if (fileName.toLowerCase().includes('.heic')) {
+    fileType = 'image/heic';
+  }
+  return new File([uri], fileName, { type: fileType });
 }

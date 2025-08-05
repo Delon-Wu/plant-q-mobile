@@ -7,9 +7,9 @@ import { track } from "@/src/api/foundation";
 import { plantRecogonize } from "@/src/api/qAssistant";
 import { DEEPSEEK_API_ADDRESS } from "@/src/constants/common";
 import { RootState } from "@/src/store";
+import { choosePhoto, getFileObject, takePhoto } from "@/src/utils/common";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Crypto from "expo-crypto";
-import * as ImagePicker from "expo-image-picker";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -80,59 +80,25 @@ const QAssistant = () => {
   // const baseURL = store.getState().settings.baseURL;
   const accessToken = useSelector((state: RootState) => state.user.accessToken);
 
-  // 图片选择逻辑
-  const takePhoto = async () => {
-    // 1. 先请求相机权限
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("权限不足", "请在设置中允许访问相机以拍摄照片。");
-      return;
-    }
-    // 2. 打开相机
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: "images",
-      allowsEditing: true,
-      quality: 0.8, // 降低质量以减小文件大小
-    });
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      setShowImageSelect(false);
-      setSelectedImage(result.assets[0].uri);
-    }
-  };
-
-  const choosePhoto = async () => {
-    console.log('-------------------Choose Photo-----------------')
-    // 1. 先请求权限
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== "granted") {
-      Alert.alert("权限不足", "请在设置中允许访问相册以选择图片。");
-      return;
-    }
-    // 2. 打开相册
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: "images",
-      allowsEditing: true,
-      quality: 0.8, // 降低质量以减小文件大小
-    });
-    
-    if (!result.canceled && result.assets?.[0]?.uri) {
-      setShowImageSelect(false);
-      setSelectedImage(result.assets[0].uri);
-    }
-  };
 
   const actions: Action[] = [
     {
       label: "拍照",
       icon: Ionicons,
       iconProps: { name: "camera", size: 14, color: "white" },
-      onPress: takePhoto,
+      onPress: () => takePhoto((uri) => {
+        setShowImageSelect(false);
+        setSelectedImage(uri);
+      }),
     },
     {
       label: "从相册选择",
       icon: Ionicons,
       iconProps: { name: "images", size: 14, color: "white" },
-      onPress: choosePhoto,
+      onPress: () => choosePhoto((uri => {
+        setShowImageSelect(false);
+        setSelectedImage(uri);
+      })),
     },
   ];
 
@@ -332,24 +298,9 @@ const QAssistant = () => {
         // Web 端直接传 base64 字符串
         formData.append('image', selectedImage);
       } else {
-        // 移动端：确保文件对象格式正确
-        const uri = selectedImage;
-        const fileName = uri?.split('/').pop() || 'photo.jpg';
-        
-        // 根据文件扩展名判断 MIME 类型
-        let fileType = 'image/jpeg';
-        if (fileName.toLowerCase().includes('.png')) {
-          fileType = 'image/png';
-        } else if (fileName.toLowerCase().includes('.gif')) {
-          fileType = 'image/gif';
-        }
-        
+        const imageFile = getFileObject(selectedImage);
         // React Native FormData 需要这种格式
-        formData.append('image', {
-          uri: uri,
-          name: fileName,
-          type: fileType,
-        } as any);
+        formData.append('image', imageFile);
       }
       
       console.log('FormData ready, calling plantRecogonize...');
