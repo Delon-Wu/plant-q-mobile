@@ -4,22 +4,45 @@ import ThemedText from "@/components/ThemedText";
 import WeatherSvg from "@/components/WeatherSvg";
 import { useThemeColor } from "@/hooks/useTheme";
 import { useUserLocation } from "@/hooks/useUserLocation";
+import { createPlant, plantList as getPlantList } from "@/src/api/plant";
 import { deleteTask, getTaskList } from "@/src/api/task";
 import { getCurrentWeather, getFutureWeather } from "@/src/api/weather";
 import { TASK_TYPES } from "@/src/constants/task";
 import { RootState } from "@/src/store";
 import { DurationType } from "@/src/types/task";
-import { generatePlantAdvice, getSeasonAdvice } from "@/src/utils/common";
+import {
+  choosePhoto,
+  choosePhotoWeb,
+  generatePlantAdvice,
+  getFileObject,
+  getSeasonAdvice,
+} from "@/src/utils/common";
 import { getNextTaskDate } from "@/src/utils/task";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
-import { Button, Card, Dialog, FAB, Portal, Text } from "react-native-paper";
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import {
+  Button,
+  Card,
+  Dialog,
+  FAB,
+  Portal,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { useSelector } from "react-redux";
 import HumiditySvg from "../../assets/images/humidity.svg";
 import TemperatureSvg from "../../assets/images/temperature.svg";
 import WindLevelSvg from "../../assets/images/windLevel.svg";
+
+const HOST = process.env.EXPO_PUBLIC_HOST || "http://localhost:8000";
 
 export default function HomeScreen() {
   const colors = useThemeColor();
@@ -33,6 +56,14 @@ export default function HomeScreen() {
   const { location } = useUserLocation();
   const userInfo = useSelector((state: RootState) => state.user);
   const [advices, setAdvices] = useState<string[]>([]);
+  // 植物相关
+  const [plantDialogVisible, setPlantDialogVisible] = useState(false);
+  const [plantList, setPlantList] = useState<any[]>([]);
+  const [plantForm, setPlantForm] = useState<{
+    name: string;
+    cover: File | string | null;
+  }>({ name: "", cover: null });
+  const [plantFormLoading, setPlantFormLoading] = useState(false);
 
   useEffect(() => {
     getTaskList()
@@ -42,6 +73,13 @@ export default function HomeScreen() {
         }
       })
       .finally(() => setLoading(false));
+    // 获取植物列表
+    getPlantList().then((res) => {
+      console.log("plant list res-->", res);
+      if (res.status === 200) {
+        setPlantList(res.data);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -140,6 +178,37 @@ export default function HomeScreen() {
     }
   };
 
+  const handlePlantCoverChoose = () => {
+    if (Platform.OS === "web") {
+      choosePhotoWeb().then((imageFile) => {
+        setPlantForm((f) => ({ ...f, cover: imageFile }));
+      });
+    } else {
+      choosePhoto((uri) => {
+        setPlantForm((f) => ({ ...f, cover: getFileObject(uri) }));
+      });
+    }
+  };
+
+  const submitPlant = async () => {
+    setPlantFormLoading(true);
+    try {
+      await createPlant({
+        name: plantForm.name,
+        cover: plantForm.cover!,
+      });
+      // 刷新列表
+      const res = await getPlantList();
+      if (res.status === 200) setPlantList(res.data);
+      setPlantDialogVisible(false);
+      setPlantForm({ name: "", cover: null });
+    } catch (err) {
+      alert("创建失败");
+    } finally {
+      setPlantFormLoading(false);
+    }
+  };
+
   return (
     <>
       <ThemedScrollView>
@@ -175,9 +244,11 @@ export default function HomeScreen() {
                     >
                       {currentWeather.text}{" "}
                       {Number(threeDaysWeather[0].precip) > 0
-                        ? ` 今日${
-                            (Math.round(Number(threeDaysWeather[0].precip) * 10000) / 100).toFixed(2)
-                          }%概率下雨`
+                        ? ` 今日${(
+                            Math.round(
+                              Number(threeDaysWeather[0].precip) * 10000
+                            ) / 100
+                          ).toFixed(2)}%概率下雨`
                         : ""}
                     </Text>
                     <View style={styles.parameter}>
@@ -317,10 +388,50 @@ export default function HomeScreen() {
               ))
             )}
           </View>
-        </ScrollView>
 
-        {/* TODO: 没有植物时显示占位图 */}
-        <ThemedText type="subtitle">我的植物</ThemedText>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              marginTop: 24,
+              marginBottom: 8,
+            }}
+          >
+            <ThemedText type="subtitle" style={{ flex: 1 }}>
+              我的植物
+            </ThemedText>
+            <TouchableOpacity onPress={() => setPlantDialogVisible(true)}>
+              <Ionicons name="add" size={18} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+            {plantList.length === 0 ? (
+              <ThemedText>暂无植物</ThemedText>
+            ) : (
+              plantList.map((plant) => (
+                <Card
+                  key={plant.id}
+                  style={{ width: "48%", marginBottom: 12 }}
+                  onPress={() => router.push(`/plant/${plant.id}` as any)}
+                >
+                  <Card.Cover
+                    source={{ uri: HOST + plant.cover }}
+                    style={{ height: 100 }}
+                  />
+                  <Card.Content>
+                    <Text variant="titleMedium">{plant.name}</Text>
+                    <Text
+                      variant="bodySmall"
+                      style={{ color: colors.onSurfaceVariant }}
+                    >
+                      {formatDate(plant.created_at)}
+                    </Text>
+                  </Card.Content>
+                </Card>
+              ))
+            )}
+          </View>
+        </ScrollView>
       </ThemedScrollView>
       <FAB
         icon="plus"
@@ -340,6 +451,51 @@ export default function HomeScreen() {
             <Button onPress={() => setDialogVisible(false)}>取消</Button>
             <Button textColor={colors.error} onPress={handleDelete}>
               删除
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+        {/* 新增植物弹窗 */}
+        <Dialog
+          visible={plantDialogVisible}
+          onDismiss={() => setPlantDialogVisible(false)}
+        >
+          <Dialog.Title>新增植物</Dialog.Title>
+          <Dialog.Content>
+            <Text>请输入植物名称和封面图片：</Text>
+            <View style={{ marginTop: 12 }}>
+              <ThemedText>植物名称</ThemedText>
+              <TextInput
+                value={plantForm.name}
+                onChangeText={(text) =>
+                  setPlantForm((f) => ({ ...f, name: text }))
+                }
+                style={{
+                  borderBottomWidth: 1,
+                  borderColor: "#ccc",
+                  marginTop: 6,
+                  marginBottom: 12,
+                }}
+                placeholder="请输入名称"
+              />
+              <ThemedText>植物封面</ThemedText>
+              {}
+              <Button
+                style={{ marginVertical: 6 }}
+                mode="outlined"
+                onPress={handlePlantCoverChoose}
+              >
+                {plantForm.cover ? "已选择图片" : "选择图片"}
+              </Button>
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setPlantDialogVisible(false)}>取消</Button>
+            <Button
+              loading={plantFormLoading}
+              disabled={!plantForm.name || !plantForm.cover}
+              onPress={submitPlant}
+            >
+              确认
             </Button>
           </Dialog.Actions>
         </Dialog>
