@@ -4,7 +4,7 @@ import ThemedText from "@/components/ThemedText";
 import WeatherSvg from "@/components/WeatherSvg";
 import { useThemeColor } from "@/hooks/useTheme";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import { createPlant, plantList as getPlantList } from "@/src/api/plant";
+import { createPlant, deletePlant, plantList as getPlantList } from "@/src/api/plant";
 import { deleteTask, getTaskList } from "@/src/api/task";
 import { getCurrentWeather, getFutureWeather } from "@/src/api/weather";
 import { TASK_TYPES } from "@/src/constants/task";
@@ -64,15 +64,13 @@ export default function HomeScreen() {
     cover: File | string | null;
   }>({ name: "", cover: null });
   const [plantFormLoading, setPlantFormLoading] = useState(false);
+  // 植物删除相关
+  const [plantDeleteDialogVisible, setPlantDeleteDialogVisible] = useState(false);
+  const [deletePlantId, setDeletePlantId] = useState<string | null>(null);
+  const [plantDeleteLoading, setPlantDeleteLoading] = useState(false);
 
   useEffect(() => {
-    getTaskList()
-      .then((res) => {
-        if (res.data.code === 200) {
-          setTasks(res?.data.data || []);
-        }
-      })
-      .finally(() => setLoading(false));
+    refreshTasks();
     // 获取植物列表
     getPlantList().then((res) => {
       console.log("plant list res-->", res);
@@ -81,6 +79,19 @@ export default function HomeScreen() {
       }
     });
   }, []);
+
+  const refreshTasks = () => {
+    setLoading(true);
+    getTaskList()
+      .then((res) => {
+        if (res.data.code === 200) {
+          setTasks(res?.data.data || []);
+        }
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
 
   useEffect(() => {
     console.log("location-->", location);
@@ -99,7 +110,6 @@ export default function HomeScreen() {
   }, [location]);
 
   const getWeatherData = async (location: string) => {
-    setLoading(true);
     const weatherRes = await getCurrentWeather({ location });
     const threeDaysWeatherRes = await getFutureWeather({ location });
     setLoading(false);
@@ -161,12 +171,12 @@ export default function HomeScreen() {
   const handleLongPress = (id: string | number) => {
     setDeleteId(String(id));
     setDialogVisible(true);
+    refreshTasks();
   };
 
   const handleDelete = async () => {
     if (!deleteId) return;
     setDialogVisible(false);
-    setLoading(true);
     try {
       await deleteTask(deleteId);
       setTasks((prev) => prev.filter((t) => t.id !== deleteId));
@@ -206,6 +216,28 @@ export default function HomeScreen() {
       alert("创建失败");
     } finally {
       setPlantFormLoading(false);
+    }
+  };
+
+  const handlePlantLongPress = (plantId: string) => {
+    setDeletePlantId(plantId);
+    setPlantDeleteDialogVisible(true);
+  };
+
+  const handlePlantDelete = async () => {
+    if (!deletePlantId) return;
+    setPlantDeleteDialogVisible(false);
+    setPlantDeleteLoading(true);
+    try {
+      await deletePlant(deletePlantId);
+      // 刷新列表
+      const res = await getPlantList();
+      if (res.status === 200) setPlantList(res.data);
+    } catch {
+      alert("删除失败");
+    } finally {
+      setPlantDeleteLoading(false);
+      setDeletePlantId(null);
     }
   };
 
@@ -413,6 +445,7 @@ export default function HomeScreen() {
                   key={plant.id}
                   style={{ width: "48%", marginBottom: 12 }}
                   onPress={() => router.push(`/plant/${plant.id}` as any)}
+                  onLongPress={() => handlePlantLongPress(plant.id)}
                 >
                   <Card.Cover
                     source={{ uri: HOST + plant.cover }}
@@ -478,7 +511,6 @@ export default function HomeScreen() {
                 placeholder="请输入名称"
               />
               <ThemedText>植物封面</ThemedText>
-              {}
               <Button
                 style={{ marginVertical: 6 }}
                 mode="outlined"
@@ -496,6 +528,26 @@ export default function HomeScreen() {
               onPress={submitPlant}
             >
               确认
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+        {/* 删除植物确认弹窗 */}
+        <Dialog
+          visible={plantDeleteDialogVisible}
+          onDismiss={() => setPlantDeleteDialogVisible(false)}
+        >
+          <Dialog.Title>确认删除</Dialog.Title>
+          <Dialog.Content>
+            <Text>确定要删除该植物吗？此操作不可恢复。</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setPlantDeleteDialogVisible(false)}>取消</Button>
+            <Button 
+              textColor={colors.error} 
+              loading={plantDeleteLoading}
+              onPress={handlePlantDelete}
+            >
+              删除
             </Button>
           </Dialog.Actions>
         </Dialog>

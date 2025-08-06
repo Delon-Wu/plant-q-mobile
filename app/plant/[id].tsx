@@ -1,22 +1,28 @@
-import ThemedText from '@/components/ThemedText';
-import ThemedView from '@/components/ThemedView';
-import { useThemeColor } from '@/hooks/useTheme';
-import { getPlantDetail } from '@/src/api/plant';
-import { Ionicons } from '@expo/vector-icons';
-import { router, Stack, useLocalSearchParams } from 'expo-router';
-import React, { useCallback, useEffect, useState } from 'react';
+import PictureSelector from "@/components/PictureSelector";
+import ThemedText from "@/components/ThemedText";
+import ThemedView from "@/components/ThemedView";
+import { useThemeColor } from "@/hooks/useTheme";
+import { addPlantRecord, getPlantDetail } from "@/src/api/plant";
+import { getFileObject, getFileObjectWeb } from "@/src/utils/common";
+import { Ionicons } from "@expo/vector-icons";
+import Feather from "@expo/vector-icons/Feather";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Dimensions,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View,
-} from 'react-native';
+  View
+} from "react-native";
+import { Button, Dialog, FAB, Text, TextInput } from "react-native-paper";
 
-const { width } = Dimensions.get('window');
+
+const { width } = Dimensions.get("window");
 const HOST = process.env.EXPO_PUBLIC_HOST || "http://localhost:8000";
 
 type PlantRecord = {
@@ -41,6 +47,13 @@ export default function PlantDetailScreen() {
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [showImageSelect, setShowImageSelect] = useState(false);
+  const [recordDialogVisible, setRecordDialogVisible] = useState(false);
+  const [recordForm, setRecordForm] = useState<{
+    remark: string;
+    image: string | null;
+  }>({ remark: "", image: null });
+  const [recordFormLoading, setRecordFormLoading] = useState(false);
 
   const colors = useThemeColor();
   const backgroundColor = colors.background;
@@ -53,8 +66,8 @@ export default function PlantDetailScreen() {
       const response = await getPlantDetail(id!);
       setPlant(response.data);
     } catch (error) {
-      console.error('获取植物详情失败:', error);
-      Alert.alert('错误', '获取植物详情失败，请重试');
+      console.error("获取植物详情失败:", error);
+      Alert.alert("错误", "获取植物详情失败，请重试");
     } finally {
       setLoading(false);
     }
@@ -68,25 +81,50 @@ export default function PlantDetailScreen() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
+    return date.toLocaleDateString("zh-CN", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
-  const sortedRecords = plant?.records.sort((a, b) => 
-    new Date(b.record_time).getTime() - new Date(a.record_time).getTime()
-  ) || [];
+  const handlePictureSelect = (uri: string) => {
+    setShowImageSelect(false);
+    setRecordForm({ ...recordForm, image: uri });
+  };
+
+  const sortedRecords =
+    plant?.records.sort(
+      (a, b) =>
+        new Date(b.record_time).getTime() - new Date(a.record_time).getTime()
+    ) || [];
+
+  const submitRecord = async () => {
+    setRecordFormLoading(true);
+    try {
+      await addPlantRecord(id, {
+        remark: recordForm.remark,
+        image: Platform.OS === "web" ? getFileObjectWeb(recordForm.image as string)! : getFileObject(recordForm.image!),
+      });
+      // 刷新列表
+      fetchPlantDetail();
+      setRecordDialogVisible(false);
+      setRecordForm({ remark: "", image: null });
+    } catch (err) {
+      Alert.alert("添加失败");
+    } finally {
+      setRecordFormLoading(false);
+    }
+  };
 
   if (loading) {
     return (
       <ThemedView style={[styles.container, { backgroundColor }]}>
         <Stack.Screen
           options={{
-            title: '植物详情',
+            title: "植物详情",
             headerShown: true,
             headerStyle: { backgroundColor },
             headerTintColor: textColor,
@@ -105,7 +143,7 @@ export default function PlantDetailScreen() {
       <ThemedView style={[styles.container, { backgroundColor }]}>
         <Stack.Screen
           options={{
-            title: '植物详情',
+            title: "植物详情",
             headerShown: true,
             headerStyle: { backgroundColor },
             headerTintColor: textColor,
@@ -141,9 +179,14 @@ export default function PlantDetailScreen() {
         }}
       />
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        showsVerticalScrollIndicator={false}
+      >
         {/* 植物封面和基本信息 */}
-        <View style={[styles.headerSection, { backgroundColor: cardBackground }]}>
+        <View
+          style={[styles.headerSection, { backgroundColor: cardBackground }]}
+        >
           <Image
             source={{ uri: HOST + plant.cover }}
             style={styles.coverImage}
@@ -167,8 +210,13 @@ export default function PlantDetailScreen() {
           </View>
 
           {sortedRecords.length === 0 ? (
-            <View style={[styles.emptyRecords, { backgroundColor: cardBackground }]}>
-              <Ionicons name="camera-outline" size={48} color={textColor} />
+            <View
+              style={[styles.emptyRecords, { backgroundColor: cardBackground }]}
+            >
+              <TouchableOpacity>
+                <Feather name="coffee" size={48} color={textColor} />
+              </TouchableOpacity>
+
               <ThemedText style={styles.emptyText}>暂无成长记录</ThemedText>
             </View>
           ) : (
@@ -176,7 +224,10 @@ export default function PlantDetailScreen() {
               {sortedRecords.map((record, index) => (
                 <TouchableOpacity
                   key={record.id}
-                  style={[styles.recordItem, { backgroundColor: cardBackground }]}
+                  style={[
+                    styles.recordItem,
+                    { backgroundColor: cardBackground },
+                  ]}
                   onPress={() => setSelectedImage(record.image)}
                 >
                   <Image
@@ -207,6 +258,12 @@ export default function PlantDetailScreen() {
         </View>
       </ScrollView>
 
+      <FAB
+        icon="camera"
+        style={styles.fab}
+        onPress={() => setRecordDialogVisible(true)}
+      />
+
       {/* 图片预览模态框 */}
       {selectedImage && (
         <TouchableOpacity
@@ -222,13 +279,67 @@ export default function PlantDetailScreen() {
               <Ionicons name="close" size={30} color="white" />
             </TouchableOpacity>
             <Image
-              source={{ uri: selectedImage.startsWith('http') ? selectedImage : HOST + selectedImage }}
+              source={{
+                uri: selectedImage.startsWith("http")
+                  ? selectedImage
+                  : HOST + selectedImage,
+              }}
               style={styles.modalImage}
               resizeMode="contain"
             />
           </View>
         </TouchableOpacity>
       )}
+
+      {/* 新增成长记录弹窗 */}
+      <Dialog
+        visible={recordDialogVisible}
+        onDismiss={() => setRecordDialogVisible(false)}
+      >
+        <Dialog.Title>新增成长记录</Dialog.Title>
+        <Dialog.Content>
+          <Text>请输入记录备注和记录图片：</Text>
+          <View style={{ marginTop: 12 }}>
+            <ThemedText>植物封面</ThemedText>
+            <Button
+              style={{ marginBottom: 12, }}
+              mode="outlined"
+              onPress={() => setShowImageSelect(true)}
+            >
+              {recordForm.image ? "已选择图片" : "选择图片"}
+            </Button>
+            <ThemedText>备注</ThemedText>
+            <TextInput
+              value={recordForm.remark}
+              onChangeText={(text) =>
+                setRecordForm((f) => ({ ...f, remark: text }))
+              }
+              style={{
+                borderBottomWidth: 1,
+                borderColor: "#ccc",
+                marginTop: 6,
+                marginVertical: 6,
+              }}
+              placeholder="请输入备注"
+            />
+          </View>
+        </Dialog.Content>
+        <Dialog.Actions>
+          <Button onPress={() => setRecordDialogVisible(false)}>取消</Button>
+          <Button
+            loading={recordFormLoading}
+            disabled={!recordForm.image}
+            onPress={submitRecord}
+          >
+            确认
+          </Button>
+        </Dialog.Actions>
+      </Dialog>
+      <PictureSelector
+        isOpen={showImageSelect}
+        onClose={() => setShowImageSelect(false)}
+        onChange={handlePictureSelect}
+      />
     </ThemedView>
   );
 }
@@ -242,8 +353,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 16,
@@ -251,14 +362,14 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   errorText: {
     fontSize: 18,
     marginTop: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   retryButton: {
     marginTop: 20,
@@ -273,9 +384,9 @@ const styles = StyleSheet.create({
   headerSection: {
     margin: 16,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     elevation: 3,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -284,7 +395,7 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
   },
   coverImage: {
-    width: '100%',
+    width: "100%",
     height: 200,
   },
   plantInfo: {
@@ -292,7 +403,7 @@ const styles = StyleSheet.create({
   },
   plantName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
   },
   createTime: {
@@ -304,14 +415,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   recordsHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   recordCount: {
     fontSize: 14,
@@ -320,7 +431,7 @@ const styles = StyleSheet.create({
   emptyRecords: {
     padding: 40,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   emptyText: {
     marginTop: 12,
@@ -331,12 +442,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   recordItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 12,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -355,7 +466,7 @@ const styles = StyleSheet.create({
   },
   recordTime: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 4,
   },
   recordRemark: {
@@ -367,32 +478,38 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   imageModal: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.9)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   imageModalContent: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
   },
   closeButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 50,
     right: 20,
     zIndex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     borderRadius: 20,
     padding: 8,
   },
   modalImage: {
     width: width - 40,
-    height: '70%',
+    height: "70%",
+  },
+  fab: {
+    position: "absolute",
+    right: 24,
+    bottom: 32,
+    zIndex: 10,
   },
 });

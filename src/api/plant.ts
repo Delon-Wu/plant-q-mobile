@@ -40,6 +40,16 @@ export function createPlant(data: {
   return request.post(`/plant/plants/`, formData);
 }
 
-export function addPlantImage(id: string) {
-  return request.get(`/plant/plants/${id}/add_image/`);
+export function addPlantRecord(id: string, data: {
+  image: File | string;
+  remark: string;
+}) {
+  const formData = new FormData();
+  formData.append('remark', data.remark);
+  formData.append('image', data.image);
+  return request.post(`/plant/plants/record/${id}/`, formData);
+}
+
+export function deletePlantRecord(recordId: string) {
+  return request.delete(`/plant/plants/record/${recordId}`);
 }
