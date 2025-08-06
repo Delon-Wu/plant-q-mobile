@@ -2,9 +2,9 @@ import PictureSelector from "@/components/PictureSelector";
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useTheme";
-import { addPlantRecord, getPlantDetail } from "@/src/api/plant";
+import { addPlantRecord, getPlantDetail, updatePlant } from "@/src/api/plant";
 import { getFileObject, getFileObjectWeb } from "@/src/utils/common";
-import { Ionicons } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
@@ -17,10 +17,16 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
-import { Button, Dialog, FAB, Text, TextInput } from "react-native-paper";
-
+import {
+  Button,
+  Dialog,
+  FAB,
+  Portal,
+  Text,
+  TextInput,
+} from "react-native-paper";
 
 const { width } = Dimensions.get("window");
 const HOST = process.env.EXPO_PUBLIC_HOST || "http://localhost:8000";
@@ -49,11 +55,20 @@ export default function PlantDetailScreen() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showImageSelect, setShowImageSelect] = useState(false);
   const [recordDialogVisible, setRecordDialogVisible] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
   const [recordForm, setRecordForm] = useState<{
     remark: string;
     image: string | null;
   }>({ remark: "", image: null });
   const [recordFormLoading, setRecordFormLoading] = useState(false);
+
+  // 编辑植物弹窗相关状态
+  const [editDialogVisible, setEditDialogVisible] = useState(false);
+  const [editForm, setEditForm] = useState<{
+    name: string;
+    cover: string | File | null;
+  }>({ name: "", cover: null });
+  const [editFormLoading, setEditFormLoading] = useState(false);
 
   const colors = useThemeColor();
   const backgroundColor = colors.background;
@@ -106,7 +121,10 @@ export default function PlantDetailScreen() {
     try {
       await addPlantRecord(id, {
         remark: recordForm.remark,
-        image: Platform.OS === "web" ? getFileObjectWeb(recordForm.image as string)! : getFileObject(recordForm.image!),
+        image:
+          Platform.OS === "web"
+            ? getFileObjectWeb(recordForm.image as string)!
+            : getFileObject(recordForm.image!),
       });
       // 刷新列表
       fetchPlantDetail();
@@ -258,12 +276,6 @@ export default function PlantDetailScreen() {
         </View>
       </ScrollView>
 
-      <FAB
-        icon="camera"
-        style={styles.fab}
-        onPress={() => setRecordDialogVisible(true)}
-      />
-
       {/* 图片预览模态框 */}
       {selectedImage && (
         <TouchableOpacity
@@ -291,50 +303,151 @@ export default function PlantDetailScreen() {
         </TouchableOpacity>
       )}
 
-      {/* 新增成长记录弹窗 */}
-      <Dialog
-        visible={recordDialogVisible}
-        onDismiss={() => setRecordDialogVisible(false)}
-      >
-        <Dialog.Title>新增成长记录</Dialog.Title>
-        <Dialog.Content>
-          <Text>请输入记录备注和记录图片：</Text>
-          <View style={{ marginTop: 12 }}>
-            <ThemedText>植物封面</ThemedText>
+      <Portal>
+        <FAB.Group
+          icon="menu"
+          visible
+          open={fabOpen}
+          style={styles.fab}
+          actions={[
+            {
+              icon: "camera",
+              onPress: () => setRecordDialogVisible(true),
+            },
+            {
+              icon: ({ color, size }) => (
+                <AntDesign name="edit" size={size} color={color} />
+              ),
+              onPress: () => {
+                setEditForm({ name: plant.name, cover: plant.cover });
+                setEditDialogVisible(true);
+              },
+            },
+          ]}
+          onStateChange={({ open }) => setFabOpen(open)}
+        />
+        {/* 新增成长记录弹窗 */}
+        <Dialog
+          visible={recordDialogVisible}
+          onDismiss={() => setRecordDialogVisible(false)}
+        >
+          <Dialog.Title>新增成长记录</Dialog.Title>
+          <Dialog.Content>
+            <Text>请输入记录备注和记录图片：</Text>
+            <View style={{ marginTop: 12 }}>
+              <ThemedText>植物封面</ThemedText>
+              <Button
+                style={{ marginBottom: 12 }}
+                mode="outlined"
+                onPress={() => setShowImageSelect(true)}
+              >
+                {recordForm.image ? "已选择图片" : "选择图片"}
+              </Button>
+              <ThemedText>备注</ThemedText>
+              <TextInput
+                value={recordForm.remark}
+                onChangeText={(text) =>
+                  setRecordForm((f) => ({ ...f, remark: text }))
+                }
+                style={{
+                  borderBottomWidth: 1,
+                  borderColor: "#ccc",
+                  marginTop: 6,
+                  marginVertical: 6,
+                }}
+                placeholder="请输入备注"
+              />
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setRecordDialogVisible(false)}>取消</Button>
             <Button
-              style={{ marginBottom: 12, }}
-              mode="outlined"
-              onPress={() => setShowImageSelect(true)}
+              loading={recordFormLoading}
+              disabled={!recordForm.image}
+              onPress={submitRecord}
             >
-              {recordForm.image ? "已选择图片" : "选择图片"}
+              确认
             </Button>
-            <ThemedText>备注</ThemedText>
-            <TextInput
-              value={recordForm.remark}
-              onChangeText={(text) =>
-                setRecordForm((f) => ({ ...f, remark: text }))
-              }
-              style={{
-                borderBottomWidth: 1,
-                borderColor: "#ccc",
-                marginTop: 6,
-                marginVertical: 6,
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* 编辑植物弹窗 */}
+        <Dialog
+          visible={editDialogVisible}
+          onDismiss={() => setEditDialogVisible(false)}
+        >
+          <Dialog.Title>编辑植物信息</Dialog.Title>
+          <Dialog.Content>
+            <Text>修改植物名称和封面：</Text>
+            <View style={{ marginTop: 12 }}>
+              <ThemedText>植物名称</ThemedText>
+              <TextInput
+                value={editForm.name}
+                onChangeText={(text) =>
+                  setEditForm((f) => ({ ...f, name: text }))
+                }
+                style={{
+                  borderBottomWidth: 1,
+                  borderColor: "#ccc",
+                  marginTop: 6,
+                  marginBottom: 12,
+                }}
+                placeholder="请输入名称"
+              />
+              <ThemedText>植物封面</ThemedText>
+              <Button
+                style={{ marginVertical: 6 }}
+                mode="outlined"
+                onPress={() => {
+                  // 选择图片，兼容 web/native
+                  if (Platform.OS === "web") {
+                    setShowImageSelect(true);
+                  } else {
+                    setShowImageSelect(true);
+                  }
+                }}
+              >
+                {editForm.cover ? "已选择图片" : "重选封面"}
+              </Button>
+            </View>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setEditDialogVisible(false)}>取消</Button>
+            <Button
+              loading={editFormLoading}
+              disabled={!editForm.name || !editForm.cover}
+              onPress={async () => {
+                setEditFormLoading(true);
+                try {
+                  let coverFile = editForm.cover;
+                  if (Platform.OS === "web" && typeof coverFile === "string") {
+                    coverFile = getFileObjectWeb(coverFile);
+                  } else if (
+                    Platform.OS !== "web" &&
+                    typeof coverFile === "string"
+                  ) {
+                    coverFile = getFileObject(coverFile);
+                  }
+
+                  console.log('editForm, coverFile-->', editForm, coverFile)
+                  await updatePlant(id!, {
+                    name: editForm.name,
+                    cover: coverFile,
+                  });
+                  await fetchPlantDetail();
+                  setEditDialogVisible(false);
+                } catch (err) {
+                  Alert.alert("编辑失败");
+                } finally {
+                  setEditFormLoading(false);
+                }
               }}
-              placeholder="请输入备注"
-            />
-          </View>
-        </Dialog.Content>
-        <Dialog.Actions>
-          <Button onPress={() => setRecordDialogVisible(false)}>取消</Button>
-          <Button
-            loading={recordFormLoading}
-            disabled={!recordForm.image}
-            onPress={submitRecord}
-          >
-            确认
-          </Button>
-        </Dialog.Actions>
-      </Dialog>
+            >
+              确认
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
       <PictureSelector
         isOpen={showImageSelect}
         onClose={() => setShowImageSelect(false)}

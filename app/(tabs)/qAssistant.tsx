@@ -282,11 +282,9 @@ const QAssistant = () => {
         formData.append('image', selectedImage);
       } else {
         const imageFile = getFileObject(selectedImage);
-        // React Native FormData 需要这种格式
-        formData.append('image', imageFile);
+        formData.append('image', imageFile as any);
       }
       
-      console.log('FormData ready, calling plantRecogonize...');
       setSelectedImage(null);
       
       const res = await plantRecogonize(formData);
@@ -312,23 +310,19 @@ const QAssistant = () => {
     } catch (error: any) {
       track({
         event: "植物识别请求失败",
-        detail: error?.response?.data?.error,
+        detail: error?.response?.data?.error || error?.message,
       });
       console.error('植物识别请求失败:', error);
-      console.error('错误详情:', {
-        message: error?.message,
-        response: error?.response?.data,
-        status: error?.response?.status,
-        code: error?.code
-      });
       
       let errorMessage = "❌ 图片识别失败，请稍后再试。";
       if (error?.code === 'ERR_NETWORK') {
-        errorMessage = "❌ 网络连接失败，请检查网络设置。";
+        errorMessage = "❌ 网络连接失败，请检查网络设置和服务器地址。";
       } else if (error?.response?.status === 413) {
         errorMessage = "❌ " + error.response.data.error || "图片过大，或格式不支持，请尝试其他图片。";
       } else if (error?.response?.data?.message) {
         errorMessage = `❌ ${error.response.data.message}`;
+      } else if (error?.message?.includes('timeout')) {
+        errorMessage = "❌ 请求超时，请检查网络连接或稍后再试。";
       }
       
       const aiMessage = {
@@ -461,7 +455,7 @@ const QAssistant = () => {
             onChangeText={setInput}
             placeholder="给 Q助手 发送消息"
             placeholderTextColor="#999"
-            editable={!isLoading != !accessToken}
+            editable={!isLoading && !!accessToken}
             multiline
           />
           <View style={styles.chatToolRow}>

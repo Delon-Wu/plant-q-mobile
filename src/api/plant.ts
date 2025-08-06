@@ -22,8 +22,14 @@ export function getPlantDetail(id: string) {
   return request.get<Plant>(`/plant/plants/${id}/`);
 }
 
-export function updatePlant(id: string, data: any) {
-  return request.put(`/plant/plants/${id}/`, data);
+export function updatePlant(id: string, data: {
+  name: string;
+  cover: any; // 可以是 File 或 string
+}) {
+  const formData = new FormData();
+  formData.append('name', data.name);
+  formData.append('cover', data.cover);
+  return request.put(`/plant/plants/${id}/`, formData);
 }
 
 export function deletePlant(id: string) {

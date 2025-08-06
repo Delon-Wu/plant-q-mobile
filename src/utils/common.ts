@@ -312,7 +312,7 @@ export const getFileObjectWeb = (base64: string): File | null => {
 }
 
 // 获取文件对象
-export const getFileObject = (uri: string): File => {
+export const getFileObject = (uri: string): any => {
   if (!uri) {
     throw new Error("URI不能为空");
   }
@@ -336,5 +336,11 @@ export const getFileObject = (uri: string): File => {
   } else if (fileName.toLowerCase().includes('.heic')) {
     fileType = 'image/heic';
   }
-  return new File([uri], fileName, { type: fileType });
+  
+  // React Native需要这种格式的文件对象
+  return {
+    uri,
+    type: fileType,
+    name: fileName,
+  };
 }
