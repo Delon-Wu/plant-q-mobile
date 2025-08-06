@@ -1,5 +1,5 @@
-import ActionSelector, { Action } from "@/components/ActionSelector";
 import BlinkingText from "@/components/BlinkingText";
+import PictureSelector from "@/components/PictureSelector";
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useTheme";
@@ -7,7 +7,7 @@ import { track } from "@/src/api/foundation";
 import { plantRecogonize } from "@/src/api/qAssistant";
 import { DEEPSEEK_API_ADDRESS } from "@/src/constants/common";
 import { RootState } from "@/src/store";
-import { choosePhoto, getFileObject, takePhoto } from "@/src/utils/common";
+import { getFileObject } from "@/src/utils/common";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Crypto from "expo-crypto";
 import React, { useEffect, useRef, useState } from "react";
@@ -80,27 +80,10 @@ const QAssistant = () => {
   // const baseURL = store.getState().settings.baseURL;
   const accessToken = useSelector((state: RootState) => state.user.accessToken);
 
-
-  const actions: Action[] = [
-    {
-      label: "拍照",
-      icon: Ionicons,
-      iconProps: { name: "camera", size: 14, color: "white" },
-      onPress: () => takePhoto((uri) => {
-        setShowImageSelect(false);
-        setSelectedImage(uri);
-      }),
-    },
-    {
-      label: "从相册选择",
-      icon: Ionicons,
-      iconProps: { name: "images", size: 14, color: "white" },
-      onPress: () => choosePhoto((uri => {
-        setShowImageSelect(false);
-        setSelectedImage(uri);
-      })),
-    },
-  ];
+  const handlePictureSelect = (uri: string) => {
+    setShowImageSelect(false);
+    setSelectedImage(uri);
+  }
 
   // 发送逻辑
   const handleSend = async () => {
@@ -489,10 +472,10 @@ const QAssistant = () => {
             >
               <Ionicons name="camera-outline" size={28} color={colors.text} />
             </TouchableOpacity>
-            <ActionSelector
+            <PictureSelector
               isOpen={showImageSelect}
               onClose={() => setShowImageSelect(false)}
-              actions={actions}
+              onChange={handlePictureSelect}
             />
             <TouchableOpacity
               onPress={handleSend}

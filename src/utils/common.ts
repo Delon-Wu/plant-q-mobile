@@ -269,6 +269,48 @@ export const choosePhotoWeb = async (): Promise<File> => {
   return Promise.resolve(new File([blob], fileName, { type: fileType }));
 }
 
+export const getFileObjectWeb = (base64: string): File | null => {
+  if (!base64) {
+    return null;
+  }
+
+  // 处理base64字符串，提取数据部分和MIME类型
+  let mimeType = 'image/jpeg';
+  let base64Data = base64;
+
+  // 如果包含data:前缀，解析MIME类型并提取纯base64数据
+  if (base64.startsWith('data:')) {
+    const [header, data] = base64.split(',');
+    if (header && data) {
+      const mimeMatch = header.match(/data:([^;]+)/);
+      if (mimeMatch) {
+        mimeType = mimeMatch[1];
+      }
+      base64Data = data;
+    }
+  }
+
+  // 将base64转换为Uint8Array
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  // 创建Blob
+  const blob = new Blob([bytes], { type: mimeType });
+
+  // 根据MIME类型确定文件扩展名
+  let extension = '.jpg';
+  if (mimeType.includes('png')) extension = '.png';
+  else if (mimeType.includes('gif')) extension = '.gif';
+  else if (mimeType.includes('webp')) extension = '.webp';
+
+  const fileName = `photo_${Date.now()}${extension}`;
+
+  return new File([blob], fileName, { type: mimeType });
+}
+
 // 获取文件对象
 export const getFileObject = (uri: string): File => {
   if (!uri) {
