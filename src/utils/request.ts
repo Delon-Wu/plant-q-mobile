@@ -61,7 +61,7 @@ apiClient.interceptors.response.use(
   async (error) => {
     // 打印详细错误信息
     if (error.toJSON) {
-      console.log('Axios Error JSON:', error.toJSON());
+      console.error('Axios Error JSON:', error.toJSON());
     }
     debugger;
     if (error.status === 401 && !error.config._retry) {
@@ -85,7 +85,6 @@ apiClient.interceptors.response.use(
         router.replace('/login');
       }
     }
-    console.error('API Error:', error.response?.data);
     return Promise.reject<ErrorResponse>(error.response?.data || { message: error.message });
   }
 );
