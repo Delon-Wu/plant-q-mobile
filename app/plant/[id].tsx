@@ -2,7 +2,8 @@ import PictureSelector from "@/components/PictureSelector";
 import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useTheme";
-import { addPlantRecord, getPlantDetail, updatePlant } from "@/src/api/plant";
+import { track } from "@/src/api/foundation";
+import { addPlantRecord, deletePlantRecord, getPlantDetail, updatePlant } from "@/src/api/plant";
 import { getFileObject, getFileObjectWeb, getImageURL } from "@/src/utils/common";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
@@ -69,6 +70,11 @@ export default function PlantDetailScreen() {
     cover: string | null;
   }>({ name: "", cover: null });
   const [editFormLoading, setEditFormLoading] = useState(false);
+
+  // 删除记录确认弹窗相关状态
+  const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
+  const [recordToDelete, setRecordToDelete] = useState<PlantRecord | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const colors = useThemeColor();
   const backgroundColor = colors.background;
@@ -146,7 +152,6 @@ export default function PlantDetailScreen() {
   };
 
   const handleEditSubmit = async () => {
-    console.log("-------------------Edit Submit-----------------");
     setEditFormLoading(true);
     try {
       let coverFile: File | string | null = editForm.cover;
@@ -168,6 +173,35 @@ export default function PlantDetailScreen() {
       Alert.alert("编辑失败");
     } finally {
       setEditFormLoading(false);
+    }
+  };
+
+  // 处理长按删除记录
+  const handleLongPressRecord = (record: PlantRecord) => {
+    setRecordToDelete(record);
+    setDeleteDialogVisible(true);
+  };
+
+  // 确认删除记录
+  const handleDeleteRecord = async () => {
+    if (!recordToDelete) return;
+    
+    setDeleteLoading(true);
+    try {
+      await deletePlantRecord(recordToDelete.id.toString());
+      await fetchPlantDetail(); // 刷新数据
+      setDeleteDialogVisible(false);
+      setRecordToDelete(null);
+      Alert.alert("成功", "记录已删除");
+    } catch (error) {
+      track({
+        event: "delete_plant_record",
+        detail: `Failed to delete record with ID ${recordToDelete.id}`,
+      });
+      console.error("删除记录失败:", error);
+      Alert.alert("错误", "删除记录失败，请重试");
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -281,6 +315,7 @@ export default function PlantDetailScreen() {
                     { backgroundColor: cardBackground },
                   ]}
                   onPress={() => setSelectedImage(record.image)}
+                  onLongPress={() => handleLongPressRecord(record)}
                 >
                   <Image
                     source={{ uri: getImageURL(record.image) }}
@@ -450,6 +485,45 @@ export default function PlantDetailScreen() {
               onPress={handleEditSubmit}
             >
               确认
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+
+        {/* 删除记录确认弹窗 */}
+        <Dialog
+          visible={deleteDialogVisible}
+          onDismiss={() => setDeleteDialogVisible(false)}
+        >
+          <Dialog.Title>删除记录</Dialog.Title>
+          <Dialog.Content>
+            <Text>确定要删除这条成长记录吗？此操作无法撤销。</Text>
+            {recordToDelete && (
+              <View style={{ marginTop: 12, alignItems: 'center' }}>
+                <Image
+                  source={{ uri: getImageURL(recordToDelete.image) }}
+                  style={[styles.recordImage, { marginBottom: 8 }]}
+                  resizeMode="cover"
+                />
+                <Text style={{ fontSize: 12, opacity: 0.7 }}>
+                  {formatDate(recordToDelete.record_time)}
+                </Text>
+                {recordToDelete.remark && (
+                  <Text style={{ fontSize: 14, marginTop: 4, textAlign: 'center' }}>
+                    {recordToDelete.remark}
+                  </Text>
+                )}
+              </View>
+            )}
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setDeleteDialogVisible(false)}>取消</Button>
+            <Button
+              loading={deleteLoading}
+              onPress={handleDeleteRecord}
+              buttonColor="#ff4444"
+              textColor="white"
+            >
+              删除
             </Button>
           </Dialog.Actions>
         </Dialog>

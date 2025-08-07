@@ -57,5 +57,5 @@ export function addPlantRecord(id: string, data: {
 }
 
 export function deletePlantRecord(recordId: string) {
-  return request.delete(`/plant/plants/record/${recordId}`);
+  return request.delete(`/plant/plants/record/delete/${recordId}`);
 }
