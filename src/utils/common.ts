@@ -274,41 +274,60 @@ export const getFileObjectWeb = (base64: string): File | null => {
     return null;
   }
 
-  // 处理base64字符串，提取数据部分和MIME类型
-  let mimeType = 'image/jpeg';
-  let base64Data = base64;
+  try {
+    // 处理base64字符串，提取数据部分和MIME类型
+    let mimeType = 'image/jpeg';
+    let base64Data = base64;
 
-  // 如果包含data:前缀，解析MIME类型并提取纯base64数据
-  if (base64.startsWith('data:')) {
-    const [header, data] = base64.split(',');
-    if (header && data) {
-      const mimeMatch = header.match(/data:([^;]+)/);
-      if (mimeMatch) {
-        mimeType = mimeMatch[1];
+    // 如果包含data:前缀，解析MIME类型并提取纯base64数据
+    if (base64.startsWith('data:')) {
+      const [header, data] = base64.split(',');
+      if (header && data) {
+        const mimeMatch = header.match(/data:([^;]+)/);
+        if (mimeMatch) {
+          mimeType = mimeMatch[1];
+        }
+        base64Data = data;
       }
-      base64Data = data;
     }
+
+    // 清理base64字符串：移除所有非base64字符
+    base64Data = base64Data.replace(/[^A-Za-z0-9+/]/g, '');
+
+    // 确保base64字符串长度是4的倍数
+    while (base64Data.length % 4 !== 0) {
+      base64Data += '=';
+    }
+
+    // 验证base64字符串是否有效
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data)) {
+      console.error('Invalid base64 string format');
+      return null;
+    }
+
+    // 将base64转换为Uint8Array
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+
+    // 创建Blob
+    const blob = new Blob([bytes], { type: mimeType });
+
+    // 根据MIME类型确定文件扩展名
+    let extension = '.jpg';
+    if (mimeType.includes('png')) extension = '.png';
+    else if (mimeType.includes('gif')) extension = '.gif';
+    else if (mimeType.includes('webp')) extension = '.webp';
+
+    const fileName = `photo_${Date.now()}${extension}`;
+
+    return new File([blob], fileName, { type: mimeType });
+  } catch (error) {
+    console.error('Error decoding base64 string:', error);
+    return null;
   }
-
-  // 将base64转换为Uint8Array
-  const binaryString = atob(base64Data);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-
-  // 创建Blob
-  const blob = new Blob([bytes], { type: mimeType });
-
-  // 根据MIME类型确定文件扩展名
-  let extension = '.jpg';
-  if (mimeType.includes('png')) extension = '.png';
-  else if (mimeType.includes('gif')) extension = '.gif';
-  else if (mimeType.includes('webp')) extension = '.webp';
-
-  const fileName = `photo_${Date.now()}${extension}`;
-
-  return new File([blob], fileName, { type: mimeType });
 }
 
 // 获取文件对象
@@ -336,11 +355,16 @@ export const getFileObject = (uri: string): any => {
   } else if (fileName.toLowerCase().includes('.heic')) {
     fileType = 'image/heic';
   }
-  
+
   // React Native需要这种格式的文件对象
   return {
     uri,
     type: fileType,
     name: fileName,
   };
+}
+
+export const getImageURL = (relativePath: string): string => {
+  const host = process.env.EXPO_PUBLIC_HOST || "http://localhost:8000";
+  return host + relativePath;
 }

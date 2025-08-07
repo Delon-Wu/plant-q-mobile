@@ -3,7 +3,7 @@ import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useTheme";
 import { addPlantRecord, getPlantDetail, updatePlant } from "@/src/api/plant";
-import { getFileObject, getFileObjectWeb } from "@/src/utils/common";
+import { getFileObject, getFileObjectWeb, getImageURL } from "@/src/utils/common";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -29,7 +29,6 @@ import {
 } from "react-native-paper";
 
 const { width } = Dimensions.get("window");
-const HOST = process.env.EXPO_PUBLIC_HOST || "http://localhost:8000";
 
 type PlantRecord = {
   id: number | string;
@@ -79,7 +78,7 @@ export default function PlantDetailScreen() {
     try {
       setLoading(true);
       const response = await getPlantDetail(id!);
-      setPlant(response.data);
+      setPlant({ ...response.data, cover: getImageURL(response.data.cover) });
     } catch (error) {
       console.error("获取植物详情失败:", error);
       Alert.alert("错误", "获取植物详情失败，请重试");
@@ -130,10 +129,36 @@ export default function PlantDetailScreen() {
       fetchPlantDetail();
       setRecordDialogVisible(false);
       setRecordForm({ remark: "", image: null });
-    } catch (err) {
+    } catch {
       Alert.alert("添加失败");
     } finally {
       setRecordFormLoading(false);
+    }
+  };
+
+  const handleEditSubmit = async () => {
+    console.log("-------------------Edit Submit-----------------");
+    setEditFormLoading(true);
+    try {
+      let coverFile = editForm.cover;
+      if (Platform.OS === "web" && typeof coverFile === "string") {
+        // coverFile = getFileObjectWeb(coverFile);
+      } else if (Platform.OS !== "web" && typeof coverFile === "string") {
+        coverFile = getFileObject(coverFile);
+      }
+
+      console.log("editForm, coverFile-->", editForm, coverFile);
+      await updatePlant(id!, {
+        name: editForm.name,
+        cover: coverFile,
+      });
+      await fetchPlantDetail();
+      setEditDialogVisible(false);
+    } catch (err) {
+      console.error("err-->", err);
+      Alert.alert("编辑失败");
+    } finally {
+      setEditFormLoading(false);
     }
   };
 
@@ -206,7 +231,7 @@ export default function PlantDetailScreen() {
           style={[styles.headerSection, { backgroundColor: cardBackground }]}
         >
           <Image
-            source={{ uri: HOST + plant.cover }}
+            source={{ uri: plant.cover }}
             style={styles.coverImage}
             resizeMode="cover"
           />
@@ -249,7 +274,7 @@ export default function PlantDetailScreen() {
                   onPress={() => setSelectedImage(record.image)}
                 >
                   <Image
-                    source={{ uri: HOST + record.image }}
+                    source={{ uri: getImageURL(record.image) }}
                     style={styles.recordImage}
                     resizeMode="cover"
                   />
@@ -294,7 +319,7 @@ export default function PlantDetailScreen() {
               source={{
                 uri: selectedImage.startsWith("http")
                   ? selectedImage
-                  : HOST + selectedImage,
+                  : getImageURL(selectedImage),
               }}
               style={styles.modalImage}
               resizeMode="contain"
@@ -416,32 +441,7 @@ export default function PlantDetailScreen() {
             <Button
               loading={editFormLoading}
               disabled={!editForm.name || !editForm.cover}
-              onPress={async () => {
-                setEditFormLoading(true);
-                try {
-                  let coverFile = editForm.cover;
-                  if (Platform.OS === "web" && typeof coverFile === "string") {
-                    coverFile = getFileObjectWeb(coverFile);
-                  } else if (
-                    Platform.OS !== "web" &&
-                    typeof coverFile === "string"
-                  ) {
-                    coverFile = getFileObject(coverFile);
-                  }
-
-                  console.log('editForm, coverFile-->', editForm, coverFile)
-                  await updatePlant(id!, {
-                    name: editForm.name,
-                    cover: coverFile,
-                  });
-                  await fetchPlantDetail();
-                  setEditDialogVisible(false);
-                } catch (err) {
-                  Alert.alert("编辑失败");
-                } finally {
-                  setEditFormLoading(false);
-                }
-              }}
+              onPress={handleEditSubmit}
             >
               确认
             </Button>

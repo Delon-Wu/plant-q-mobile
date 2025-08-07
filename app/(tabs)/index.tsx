@@ -15,6 +15,7 @@ import {
   choosePhotoWeb,
   generatePlantAdvice,
   getFileObject,
+  getImageURL,
   getSeasonAdvice,
 } from "@/src/utils/common";
 import { getNextTaskDate } from "@/src/utils/task";
@@ -41,8 +42,6 @@ import { useSelector } from "react-redux";
 import HumiditySvg from "../../assets/images/humidity.svg";
 import TemperatureSvg from "../../assets/images/temperature.svg";
 import WindLevelSvg from "../../assets/images/windLevel.svg";
-
-const HOST = process.env.EXPO_PUBLIC_HOST || "http://localhost:8000";
 
 export default function HomeScreen() {
   const colors = useThemeColor();
@@ -212,7 +211,7 @@ export default function HomeScreen() {
       if (res.status === 200) setPlantList(res.data);
       setPlantDialogVisible(false);
       setPlantForm({ name: "", cover: null });
-    } catch (err) {
+    } catch {
       alert("创建失败");
     } finally {
       setPlantFormLoading(false);
@@ -448,7 +447,7 @@ export default function HomeScreen() {
                   onLongPress={() => handlePlantLongPress(plant.id)}
                 >
                   <Card.Cover
-                    source={{ uri: HOST + plant.cover }}
+                    source={{ uri: getImageURL(plant.cover) }}
                     style={{ height: 100 }}
                   />
                   <Card.Content>
