@@ -137,7 +137,7 @@ export default function PlantDetailScreen() {
         remark: recordForm.remark,
         image:
           Platform.OS === "web"
-            ? getFileObjectWeb(recordForm.image as string, fileNameWeb)!
+            ? await getFileObjectWeb(recordForm.image as string, fileNameWeb)
             : getFileObject(recordForm.image!),
       });
       // 刷新列表
