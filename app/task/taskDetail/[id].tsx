@@ -5,6 +5,7 @@ import ThemedText from "@/components/ThemedText";
 import customToast from "@/components/Toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/toast";
+import { plantList } from "@/src/api/plant";
 import { getTaskDetail, updateTask } from "@/src/api/task";
 import { TASK_TYPES } from "@/src/constants/task";
 import { DurationType } from "@/src/types/task";
@@ -16,20 +17,15 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, RadioButton, TextInput } from "react-native-paper";
 
-const PLANT_OBJECTS = [
-  { label: "玫瑰", value: "rose" },
-  { label: "多肉", value: "succulent" },
-  { label: "绿萝", value: "pothos" },
-  { label: "其他", value: "other" },
-];
-
 const TaskDetail = () => {
   const { id } = useLocalSearchParams();
   const toast = useToast();
   const { showToast } = customToast(toast);
   const [loading, setLoading] = useState(true);
   const [taskType, setTaskType] = useState("");
-  const [plant, setPlant] = useState("rose");
+  const [plant, setPlant] = useState("");
+  const [plantOptions, setPlantOptions] = useState<{ label: string; value: string }[]>([]);
+  const [plantsLoaded, setPlantsLoaded] = useState(false);
   const [durationType, setDurationType] = useState<DurationType>(
     DurationType.stage
   );
@@ -62,6 +58,35 @@ const TaskDetail = () => {
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  
+    // 获取植物列表
+    useEffect(() => {
+      const fetchPlants = async () => {
+        try {
+          const res = await plantList();
+          if (res.status === 200) {
+            const options = res.data.map(plantItem => ({
+              label: plantItem.name,
+              value: plantItem.id.toString()
+            }));
+            setPlantOptions(options);
+          }
+        } catch (error) {
+          console.error('获取植物列表失败:', error);
+          // 如果获取失败，使用默认选项
+          const defaultOptions = [{ label: "其他", value: "other" }];
+          setPlantOptions(defaultOptions);
+          setPlant("other");
+        } finally {
+          setPlantsLoaded(true);
+        }
+      };
+      
+      if (!plantsLoaded) {
+        fetchPlants();
+      }
+    }, [plantsLoaded]);
 
   // 保存间隔天数和备注（页面卸载时）
   useEffect(() => {
@@ -177,7 +202,7 @@ const TaskDetail = () => {
           setPlant(v);
           autoSave("plant", v);
         }}
-        options={PLANT_OBJECTS}
+        options={plantOptions}
         variant="underlined"
         placeholder="养护的作物"
       />

@@ -360,7 +360,7 @@ export default function HomeScreen() {
                       variant="titleMedium"
                       style={{ color: colors.primary }}
                     >
-                      {getTaskTypeLabel(task.task_type)} - {task.plant}
+                      {getTaskTypeLabel(task.task_type)} - {plantList.find(plant => plant.id.toString() === task.plant)?.name || "植物已删除"}
                     </Text>
                     <View>
                       <Text style={styles[task.duration_type as DurationType]}>

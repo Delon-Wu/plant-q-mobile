@@ -4,26 +4,22 @@ import ThemedScrollView from "@/components/ThemedScrollView";
 import ThemedText from "@/components/ThemedText";
 import customToast from "@/components/Toast";
 import { useToast } from "@/components/ui/toast";
+import { plantList } from "@/src/api/plant";
 import { createTask } from "@/src/api/task";
 import { TASK_TYPES } from "@/src/constants/task";
 import { DurationType } from "@/src/types/task";
 import { asyncSaveTaskToCalendar, getNextTaskDate } from "@/src/utils/task";
 import * as Calendar from "expo-calendar";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, RadioButton, TextInput } from "react-native-paper";
 
-const PLANT_OBJECTS = [
-  { label: "玫瑰", value: "rose" },
-  { label: "多肉", value: "succulent" },
-  { label: "绿萝", value: "pothos" },
-  { label: "其他", value: "other" },
-];
-
 const CreateTask = () => {
   const [taskType, setTaskType] = useState("");
-  const [plant, setPlant] = useState("rose");
+  const [plant, setPlant] = useState("");
+  const [plantOptions, setPlantOptions] = useState<{ label: string; value: string }[]>([]);
+  const [plantsLoaded, setPlantsLoaded] = useState(false);
   const [durationType, setDurationType] = useState<DurationType>(
     DurationType.stage
   );
@@ -34,6 +30,38 @@ const CreateTask = () => {
   const [remark, setRemark] = useState("");
   const [alarmAdded, setAlarmAdded] = useState(false);
   const toast = useToast();
+
+  // 获取植物列表
+  useEffect(() => {
+    const fetchPlants = async () => {
+      try {
+        const res = await plantList();
+        if (res.status === 200) {
+          const options = res.data.map(plantItem => ({
+            label: plantItem.name,
+            value: plantItem.id.toString()
+          }));
+          setPlantOptions(options);
+          // 设置默认值为第一个植物
+          if (options.length > 0) {
+            setPlant(options[0].value);
+          }
+        }
+      } catch (error) {
+        console.error('获取植物列表失败:', error);
+        // 如果获取失败，使用默认选项
+        const defaultOptions = [{ label: "其他", value: "other" }];
+        setPlantOptions(defaultOptions);
+        setPlant("other");
+      } finally {
+        setPlantsLoaded(true);
+      }
+    };
+    
+    if (!plantsLoaded) {
+      fetchPlants();
+    }
+  }, [plantsLoaded]);
 
   // 校验函数
   const validate = () => {
@@ -140,7 +168,7 @@ const CreateTask = () => {
         className="mb-5"
         value={plant}
         onValueChange={setPlant}
-        options={PLANT_OBJECTS}
+        options={plantOptions}
         variant="underlined"
         placeholder="养护的作物"
       />
