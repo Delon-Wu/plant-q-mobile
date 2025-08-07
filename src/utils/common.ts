@@ -206,7 +206,7 @@ export const getSeasonAdvice = (season?: Season): string[] => {
 
 
 // 图片选择逻辑
-export const takePhoto = async (callback?: (uri: string) => void, options: ImagePicker.ImagePickerOptions = {}) => {
+export const takePhoto = async (callback?: (uri: string, fileName?: string | null) => void, options: ImagePicker.ImagePickerOptions = {}) => {
   // 1. 先请求相机权限
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   if (status !== "granted") {
@@ -221,11 +221,11 @@ export const takePhoto = async (callback?: (uri: string) => void, options: Image
     ...options,
   });
   if (!result.canceled && result.assets?.[0]?.uri && callback) {
-    callback(result.assets[0].uri); // 调用回调函数
+    callback(result.assets[0].uri, result.assets?.[0].fileName); // 调用回调函数
   }
 };
 
-export const choosePhoto = async (callback?: (uri: string) => void, options: ImagePicker.ImagePickerOptions = {}) => {
+export const choosePhoto = async (callback?: (uri: string, fileName?: string | null) => void, options: ImagePicker.ImagePickerOptions = {}) => {
   // 1. 先请求权限
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
   if (status !== "granted") {
@@ -239,14 +239,15 @@ export const choosePhoto = async (callback?: (uri: string) => void, options: Ima
     quality: 0.8, // 降低质量以减小文件大小
     ...options
   });
+  console.log('result.assets?.[0]-->', result.assets?.[0]);
 
   if (!result.canceled && result.assets?.[0]?.uri && callback) {
-    callback(result.assets[0].uri); // 调用回调函数
+    callback(result.assets[0].uri, result.assets?.[0].fileName); // 调用回调函数
   }
 };
 
 // web端：选择图片
-export const choosePhotoWeb = async (): Promise<File> => {
+export const choosePhotoWeb = async (): Promise<File | null> => {
   // Web端图片选择，使用expo-image-picker
   // 注意：expo-image-picker的launchImageLibraryAsync在Web端返回base64或blob URL
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -259,74 +260,28 @@ export const choosePhotoWeb = async (): Promise<File> => {
     throw new Error('未选择图片');
   }
   const asset = result.assets[0];
-  // fetch图片内容转为blob
-  const response = await fetch(asset.uri);
-  const blob = await response.blob();
-  // 获取文件名和类型
-  const fileName = asset.fileName || asset.uri.split('/').pop() || `photo_${Date.now()}.jpg`;
-  const fileType = blob.type || 'image/jpeg';
-  // 构造File对象
-  return Promise.resolve(new File([blob], fileName, { type: fileType }));
+  return getFileObjectWeb(asset.uri, asset.fileName ?? '');
 }
 
-export const getFileObjectWeb = (base64: string): File | null => {
-  if (!base64) {
-    return null;
+export const getFileObjectWeb = async (uri: string, fileName: string): Promise<File | null> => {
+  if (!uri) {
+    return Promise.reject(null);
   }
 
+  console.log('fileName-->', fileName);
+
   try {
-    // 处理base64字符串，提取数据部分和MIME类型
-    let mimeType = 'image/jpeg';
-    let base64Data = base64;
-
-    // 如果包含data:前缀，解析MIME类型并提取纯base64数据
-    if (base64.startsWith('data:')) {
-      const [header, data] = base64.split(',');
-      if (header && data) {
-        const mimeMatch = header.match(/data:([^;]+)/);
-        if (mimeMatch) {
-          mimeType = mimeMatch[1];
-        }
-        base64Data = data;
-      }
-    }
-
-    // 清理base64字符串：移除所有非base64字符
-    base64Data = base64Data.replace(/[^A-Za-z0-9+/]/g, '');
-
-    // 确保base64字符串长度是4的倍数
-    while (base64Data.length % 4 !== 0) {
-      base64Data += '=';
-    }
-
-    // 验证base64字符串是否有效
-    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(base64Data)) {
-      console.error('Invalid base64 string format');
-      return null;
-    }
-
-    // 将base64转换为Uint8Array
-    const binaryString = atob(base64Data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-
-    // 创建Blob
-    const blob = new Blob([bytes], { type: mimeType });
-
-    // 根据MIME类型确定文件扩展名
-    let extension = '.jpg';
-    if (mimeType.includes('png')) extension = '.png';
-    else if (mimeType.includes('gif')) extension = '.gif';
-    else if (mimeType.includes('webp')) extension = '.webp';
-
-    const fileName = `photo_${Date.now()}${extension}`;
-
-    return new File([blob], fileName, { type: mimeType });
+  // fetch图片内容转为blob
+  const response = await fetch(uri);
+  const blob = await response.blob();
+  // 获取文件名和类型
+  const _fileName = fileName || uri.split('/').pop() || `photo_${Date.now()}.jpg`;
+  const fileType = blob.type || 'image/jpeg';
+  // 构造File对象
+  return Promise.resolve(new File([blob], _fileName, { type: fileType }));
   } catch (error) {
     console.error('Error decoding base64 string:', error);
-    return null;
+    return Promise.reject(null);
   }
 }
 

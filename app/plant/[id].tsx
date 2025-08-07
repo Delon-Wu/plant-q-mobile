@@ -53,6 +53,7 @@ export default function PlantDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showImageSelect, setShowImageSelect] = useState(false);
+  const [showCoverImageSelect, setShowCoverImageSelect] = useState(false);
   const [recordDialogVisible, setRecordDialogVisible] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
   const [recordForm, setRecordForm] = useState<{
@@ -65,7 +66,7 @@ export default function PlantDetailScreen() {
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [editForm, setEditForm] = useState<{
     name: string;
-    cover: string | File | null;
+    cover: string | null;
   }>({ name: "", cover: null });
   const [editFormLoading, setEditFormLoading] = useState(false);
 
@@ -104,9 +105,17 @@ export default function PlantDetailScreen() {
     });
   };
 
-  const handlePictureSelect = (uri: string) => {
+  const [fileNameWeb, setFileNameWeb] = useState(''); // 用于web端图片文件名
+  const handlePictureSelect = (uri: string, fileName?: string | null) => {
+    setFileNameWeb(fileName || '');
     setShowImageSelect(false);
     setRecordForm({ ...recordForm, image: uri });
+  };
+
+  const handleCoverPictureSelect = (uri: string, fileName?: string | null) => {
+    setFileNameWeb(fileName || '');
+    setShowCoverImageSelect(false);
+    setEditForm({ ...editForm, cover: uri });
   };
 
   const sortedRecords =
@@ -122,7 +131,7 @@ export default function PlantDetailScreen() {
         remark: recordForm.remark,
         image:
           Platform.OS === "web"
-            ? getFileObjectWeb(recordForm.image as string)!
+            ? getFileObjectWeb(recordForm.image as string, fileNameWeb)!
             : getFileObject(recordForm.image!),
       });
       // 刷新列表
@@ -140,9 +149,9 @@ export default function PlantDetailScreen() {
     console.log("-------------------Edit Submit-----------------");
     setEditFormLoading(true);
     try {
-      let coverFile = editForm.cover;
-      if (Platform.OS === "web" && typeof coverFile === "string") {
-        // coverFile = getFileObjectWeb(coverFile);
+      let coverFile: File | string | null = editForm.cover;
+      if (Platform.OS === "web" && typeof coverFile === "string" && fileNameWeb) {
+        coverFile = await getFileObjectWeb(coverFile, fileNameWeb);
       } else if (Platform.OS !== "web" && typeof coverFile === "string") {
         coverFile = getFileObject(coverFile);
       }
@@ -419,20 +428,17 @@ export default function PlantDetailScreen() {
                 }}
                 placeholder="请输入名称"
               />
-              <ThemedText>植物封面</ThemedText>
+              <ThemedText>重选植物封面</ThemedText>
               <Button
                 style={{ marginVertical: 6 }}
-                mode="outlined"
-                onPress={() => {
-                  // 选择图片，兼容 web/native
-                  if (Platform.OS === "web") {
-                    setShowImageSelect(true);
-                  } else {
-                    setShowImageSelect(true);
-                  }
-                }}
+                mode="text"
+                onPress={() => setShowCoverImageSelect(true)}
               >
-                {editForm.cover ? "已选择图片" : "重选封面"}
+                <Image
+                  source={{ uri: editForm.cover ? editForm.cover : plant.cover }}
+                  style={styles.recordImage}
+                  resizeMode="cover"
+                />
               </Button>
             </View>
           </Dialog.Content>
@@ -452,6 +458,11 @@ export default function PlantDetailScreen() {
         isOpen={showImageSelect}
         onClose={() => setShowImageSelect(false)}
         onChange={handlePictureSelect}
+      />
+      <PictureSelector
+        isOpen={showCoverImageSelect}
+        onClose={() => setShowCoverImageSelect(false)}
+        onChange={handleCoverPictureSelect}
       />
     </ThemedView>
   );

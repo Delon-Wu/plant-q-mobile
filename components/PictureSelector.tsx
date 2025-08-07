@@ -22,7 +22,7 @@ export type Action = {
 
 type PictureSelectorProps = {
   isOpen: boolean;
-  onChange: (uri: string) => void;
+  onChange: (uri: string, fileName?: string | null) => void;
   onClose?: () => void;
 };
 
