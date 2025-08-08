@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import { router } from 'expo-router';
-import { refreshToken } from '../api/account';
 import { store } from '../store';
 import { clearUserStore, setToken } from '../store/userSlice';
 
@@ -70,10 +69,10 @@ apiClient.interceptors.response.use(
         // 如果是401错误且不是刷新token的请求，则尝试刷新token
         const tokenToRefresh = store.getState().user.refreshToken || '';
         if (tokenToRefresh) {
-          const res = await refreshToken(tokenToRefresh);
+          const res = await apiClient.post(WhiteList.refresh, { refresh: tokenToRefresh });
           store.dispatch(setToken({ refreshToken: tokenToRefresh, accessToken: res.data.data.access }));
           error.config.headers['Authorization'] = `Bearer ${res.data.data.access}`;
-          
+
           // 重新发送请求
           return apiClient(error.config);
         } else {

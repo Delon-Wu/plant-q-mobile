@@ -10,7 +10,7 @@ import { RootState } from "@/src/store";
 import { getFileObject } from "@/src/utils/common";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as Crypto from "expo-crypto";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -526,10 +526,7 @@ const styles = StyleSheet.create({
     marginTop: 50,
     borderRadius: 15,
     marginHorizontal: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
     elevation: 3,
   },
   welcomeTitle: {
@@ -547,10 +544,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 15,
     marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
     elevation: 2,
   },
   userBubble: {
