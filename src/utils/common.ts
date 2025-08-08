@@ -1,3 +1,4 @@
+import { store } from "@/src/store";
 import * as ImagePicker from "expo-image-picker";
 import { Alert } from "react-native";
 import { PLANT_CARE_RULES } from "../constants/common";
@@ -318,8 +319,7 @@ export const getFileObject = (uri: string): any => {
     name: fileName,
   };
 }
-
 export const getImageURL = (relativePath: string): string => {
-  const host = process.env.EXPO_PUBLIC_HOST || "http://localhost:8000";
+  const host = store.getState().settings.host || "http://localhost:8000";
   return host + relativePath;
 }
