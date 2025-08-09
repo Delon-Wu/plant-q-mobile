@@ -8,7 +8,7 @@ import { getFileObject, getFileObjectWeb, getImageURL } from "@/src/utils/common
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -29,7 +29,13 @@ import {
   TextInput,
 } from "react-native-paper";
 
-const { width } = Dimensions.get("window");
+// 安全获取屏幕宽度，避免 SSR 问题
+const getScreenWidth = () => {
+  if (typeof window !== 'undefined') {
+    return Dimensions.get("window").width;
+  }
+  return 400; // 默认宽度，适用于 SSR
+};
 
 type PlantRecord = {
   id: number | string;
@@ -50,6 +56,7 @@ type Plant = {
 
 export default function PlantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const [width, setWidth] = useState(getScreenWidth());
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -75,6 +82,25 @@ export default function PlantDetailScreen() {
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState<PlantRecord | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // 监听屏幕尺寸变化
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const subscription = Dimensions.addEventListener('change', ({ window }) => {
+        setWidth(window.width);
+      });
+      
+      return () => subscription?.remove();
+    }
+  }, []);
+
+  // 创建动态样式
+  const dynamicStyles = StyleSheet.create({
+    modalImage: {
+      width: width - 40,
+      height: "70%",
+    },
+  });
 
   const colors = useThemeColor();
   const backgroundColor = colors.background;
@@ -584,13 +610,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: "hidden",
     elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
   },
   coverImage: {
     width: "100%",
@@ -645,13 +665,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.05,
-    shadowRadius: 2.22,
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
   },
   recordImage: {
     width: 60,
@@ -701,7 +715,7 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   modalImage: {
-    width: width - 40,
+    width: "90%",
     height: "70%",
   },
   fab: {

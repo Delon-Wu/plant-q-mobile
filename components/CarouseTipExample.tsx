@@ -1,4 +1,3 @@
-import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import CarouselTip from './CarouseTip';
 
@@ -64,13 +63,7 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#fff',
     borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
     elevation: 5,
   },
   basicText: {
