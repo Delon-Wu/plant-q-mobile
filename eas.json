@@ -17,13 +17,19 @@
     "production": {
       "autoIncrement": true,
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "env": {
+          "NODE_ENV": "production"
+        }
       }
     },
-    "apk": {
+    "apk-release": {
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease"
+        "gradleCommand": ":app:assembleRelease",
+        "env": {
+          "NODE_ENV": "production"
+        }
       }
     }
   },

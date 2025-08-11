@@ -2,13 +2,27 @@ import * as SecureStore from 'expo-secure-store';
 
 export const SecureStoreStorage = {
   async setItem(key: string, value: string) {
-    await SecureStore.setItemAsync(normalizeKey(key), value);
+    try {
+      await SecureStore.setItemAsync(normalizeKey(key), value);
+    } catch (error) {
+      console.warn('SecureStore setItem failed:', error);
+      // 降级到普通存储或忽略错误
+    }
   },
   async getItem(key: string) {
-    return await SecureStore.getItemAsync(normalizeKey(key));
+    try {
+      return await SecureStore.getItemAsync(normalizeKey(key));
+    } catch (error) {
+      console.warn('SecureStore getItem failed:', error);
+      return null;
+    }
   },
   async removeItem(key: string) {
-    await SecureStore.deleteItemAsync(normalizeKey(key));
+    try {
+      await SecureStore.deleteItemAsync(normalizeKey(key));
+    } catch (error) {
+      console.warn('SecureStore removeItem failed:', error);
+    }
   },
 };
 

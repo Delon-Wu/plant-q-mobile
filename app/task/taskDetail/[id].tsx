@@ -12,13 +12,13 @@ import { DurationType } from "@/src/types/task";
 import { asyncSaveTaskToCalendar, getNextTaskDate } from "@/src/utils/task";
 import * as Calendar from "expo-calendar";
 import { useLocalSearchParams } from "expo-router";
-import * as React from "react";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button, RadioButton, TextInput } from "react-native-paper";
 
 const TaskDetail = () => {
   const { id } = useLocalSearchParams();
+  const taskId = (Array.isArray(id) ? id[0] : id) as string;
   const toast = useToast();
   const { showToast } = customToast(toast);
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,6 @@ const TaskDetail = () => {
 
   useEffect(() => {
     if (!id) return;
-    const taskId = Array.isArray(id) ? id[0] : id;
     setLoading(true);
     getTaskDetail(taskId)
       .then((res) => {
@@ -92,7 +91,6 @@ const TaskDetail = () => {
   useEffect(() => {
     return () => {
       if (!id) return;
-      const taskId = Array.isArray(id) ? id[0] : id;
       if (intervalDays !== "") {
         updateTask(taskId, { interval_days: Number(intervalDays) });
       }
@@ -105,7 +103,6 @@ const TaskDetail = () => {
   // 通用自动保存（只用于即时保存的字段）
   const autoSave = async (field: string, value: any) => {
     if (!id) return;
-    const taskId = Array.isArray(id) ? id[0] : id;
     try {
       await updateTask(taskId, { [field]: value });
       showToast({ title: "更新成功", action: "success" });
