@@ -24,12 +24,16 @@ export function getPlantDetail(id: string) {
 
 export function updatePlant(id: string, data: {
   name: string;
+  description: string;
   cover: any; // 可以是 File 或 string
 }) {
   const formData = new FormData();
   formData.append('name', data.name);
+  formData.append('description', data.description);
   formData.append('cover', data.cover);
-  return request.put(`/plant/plants/${id}/`, formData);
+  return request.put(`/plant/plants/${id}/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
 }
 
 export function deletePlant(id: string) {
@@ -38,12 +42,16 @@ export function deletePlant(id: string) {
 
 export function createPlant(data: {
   name: string;
+  description: string;
   cover: File | string;
 }) {
   const formData = new FormData();
   formData.append('name', data.name);
+  formData.append('description', data.description);
   formData.append('cover', data.cover);
-  return request.post(`/plant/plants/`, formData);
+  return request.post(`/plant/plants/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
 }
 
 export function addPlantRecord(id: string, data: {
@@ -53,7 +61,9 @@ export function addPlantRecord(id: string, data: {
   const formData = new FormData();
   formData.append('remark', data.remark);
   formData.append('image', data.image);
-  return request.post(`/plant/plants/record/${id}/`, formData);
+  return request.post(`/plant/plants/record/${id}/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
 }
 
 export function deletePlantRecord(recordId: string) {

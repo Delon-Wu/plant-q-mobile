@@ -4,7 +4,11 @@ import ThemedText from "@/components/ThemedText";
 import WeatherSvg from "@/components/WeatherSvg";
 import { useThemeColor } from "@/hooks/useTheme";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import { createPlant, deletePlant, plantList as getPlantList } from "@/src/api/plant";
+import {
+  createPlant,
+  deletePlant,
+  plantList as getPlantList,
+} from "@/src/api/plant";
 import { deleteTask, getTaskList } from "@/src/api/task";
 import { getCurrentWeather, getFutureWeather } from "@/src/api/weather";
 import { TASK_TYPES } from "@/src/constants/task";
@@ -20,8 +24,8 @@ import {
 } from "@/src/utils/common";
 import { getNextTaskDate } from "@/src/utils/task";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import {
   Platform,
   ScrollView,
@@ -60,24 +64,15 @@ export default function HomeScreen() {
   const [plantList, setPlantList] = useState<any[]>([]);
   const [plantForm, setPlantForm] = useState<{
     name: string;
+    description: string;
     cover: File | string | null;
-  }>({ name: "", cover: null });
+  }>({ name: "", cover: null, description: "" });
   const [plantFormLoading, setPlantFormLoading] = useState(false);
   // 植物删除相关
-  const [plantDeleteDialogVisible, setPlantDeleteDialogVisible] = useState(false);
+  const [plantDeleteDialogVisible, setPlantDeleteDialogVisible] =
+    useState(false);
   const [deletePlantId, setDeletePlantId] = useState<string | null>(null);
   const [plantDeleteLoading, setPlantDeleteLoading] = useState(false);
-
-  useEffect(() => {
-    refreshTasks();
-    // 获取植物列表
-    getPlantList().then((res) => {
-      console.log("plant list res-->", res);
-      if (res.status === 200) {
-        setPlantList(res.data);
-      }
-    });
-  }, []);
 
   const refreshTasks = () => {
     setLoading(true);
@@ -91,6 +86,63 @@ export default function HomeScreen() {
         setLoading(false);
       });
   };
+
+  const refreshPlantList = () => {
+    // 获取植物列表
+    getPlantList().then((res) => {
+      console.log("plant list res-->", res);
+      if (res.status === 200) {
+        setPlantList(res.data);
+      }
+    });
+  };
+
+  const refresh = useCallback(() => {
+    refreshTasks();
+    refreshPlantList();
+  }, []);
+
+  // 使用 useFocusEffect 代替 useEffect，确保从其他页面返回时重新刷新数据
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
+
+  const getWeatherData = useCallback(
+    async (location: string) => {
+      const weatherRes = await getCurrentWeather({ location });
+      const threeDaysWeatherRes = await getFutureWeather({ location });
+      setLoading(false);
+      if (weatherRes.status === 200) {
+        setCurrentWeather(weatherRes.data.results[0]?.now || null);
+        setWeatherLocation(weatherRes.data.results[0]?.location); // 获取天气城市名称
+      }
+      if (threeDaysWeatherRes.status === 200) {
+        setThreeDaysWeather(threeDaysWeatherRes.data.results[0]?.daily || null);
+        if (threeDaysWeather) {
+          const advices = generatePlantAdvice({
+            condition: threeDaysWeather[0].text,
+            temperature: currentWeather?.temperature,
+            humidity: threeDaysWeather[0]?.humidity,
+            precipitation: threeDaysWeather[0].precip,
+            wind_speed: threeDaysWeather[0].wind_speed,
+            forecast: threeDaysWeather.map((day: any) => ({
+              condition: day.text_day,
+              min_temp: day.low,
+              max_temp: day.high,
+            })),
+            date: new Date(),
+          });
+          console.log("advices-->", advices);
+          setAdvices(advices);
+        } else {
+          setAdvices(getSeasonAdvice());
+        }
+      }
+    },
+    [threeDaysWeather, currentWeather]
+  );
 
   useEffect(() => {
     console.log("location-->", location);
@@ -106,39 +158,12 @@ export default function HomeScreen() {
       // 开发环境使用默认位置
       getWeatherData("深圳");
     }
-  }, [location]);
-
-  const getWeatherData = async (location: string) => {
-    const weatherRes = await getCurrentWeather({ location });
-    const threeDaysWeatherRes = await getFutureWeather({ location });
-    setLoading(false);
-    if (weatherRes.status === 200) {
-      setCurrentWeather(weatherRes.data.results[0]?.now || null);
-      setWeatherLocation(weatherRes.data.results[0]?.location); // 获取天气城市名称
-    }
-    if (threeDaysWeatherRes.status === 200) {
-      setThreeDaysWeather(threeDaysWeatherRes.data.results[0]?.daily || null);
-      if (threeDaysWeather) {
-        const advices = generatePlantAdvice({
-          condition: threeDaysWeather[0].text,
-          temperature: currentWeather?.temperature,
-          humidity: threeDaysWeather[0]?.humidity,
-          precipitation: threeDaysWeather[0].precip,
-          wind_speed: threeDaysWeather[0].wind_speed,
-          forecast: threeDaysWeather.map((day: any) => ({
-            condition: day.text_day,
-            min_temp: day.low,
-            max_temp: day.high,
-          })),
-          date: new Date(),
-        });
-        console.log("advices-->", advices);
-        setAdvices(advices);
-      } else {
-        setAdvices(getSeasonAdvice());
-      }
-    }
-  };
+  }, [
+    location,
+    userInfo.position?.latitude,
+    userInfo.position?.longitude,
+    getWeatherData,
+  ]);
 
   // 获取任务类型label
   const getTaskTypeLabel = (type: string) => {
@@ -204,13 +229,14 @@ export default function HomeScreen() {
     try {
       await createPlant({
         name: plantForm.name,
+        description: plantForm.description,
         cover: plantForm.cover!,
       });
       // 刷新列表
       const res = await getPlantList();
       if (res.status === 200) setPlantList(res.data);
       setPlantDialogVisible(false);
-      setPlantForm({ name: "", cover: null });
+      setPlantForm({ name: "", cover: null, description: "" });
     } catch {
       alert("创建失败");
     } finally {
@@ -360,7 +386,10 @@ export default function HomeScreen() {
                       variant="titleMedium"
                       style={{ color: colors.primary }}
                     >
-                      {getTaskTypeLabel(task.task_type)} - {plantList.find(plant => plant.id.toString() === task.plant)?.name || "植物已删除"}
+                      {getTaskTypeLabel(task.task_type)} -{" "}
+                      {plantList.find(
+                        (plant) => plant.id.toString() === task.plant
+                      )?.name || "植物已删除"}
                     </Text>
                     <View>
                       <Text style={styles[task.duration_type as DurationType]}>
@@ -509,6 +538,22 @@ export default function HomeScreen() {
                 }}
                 placeholder="请输入名称"
               />
+              <ThemedText>描述</ThemedText>
+              <TextInput
+                value={plantForm.description}
+                onChangeText={(text) =>
+                  setPlantForm((f) => ({ ...f, description: text }))
+                }
+                multiline
+                numberOfLines={3}
+                style={{
+                  borderBottomWidth: 1,
+                  borderColor: "#ccc",
+                  marginTop: 6,
+                  marginBottom: 12,
+                }}
+                placeholder="请输入描述"
+              />
               <ThemedText>植物封面</ThemedText>
               <Button
                 style={{ marginVertical: 6 }}
@@ -540,9 +585,11 @@ export default function HomeScreen() {
             <Text>确定要删除该植物吗？此操作不可恢复。</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setPlantDeleteDialogVisible(false)}>取消</Button>
-            <Button 
-              textColor={colors.error} 
+            <Button onPress={() => setPlantDeleteDialogVisible(false)}>
+              取消
+            </Button>
+            <Button
+              textColor={colors.error}
               loading={plantDeleteLoading}
               onPress={handlePlantDelete}
             >

@@ -3,8 +3,17 @@ import ThemedText from "@/components/ThemedText";
 import ThemedView from "@/components/ThemedView";
 import { useThemeColor } from "@/hooks/useTheme";
 import { track } from "@/src/api/foundation";
-import { addPlantRecord, deletePlantRecord, getPlantDetail, updatePlant } from "@/src/api/plant";
-import { getFileObject, getFileObjectWeb, getImageURL } from "@/src/utils/common";
+import {
+  addPlantRecord,
+  deletePlantRecord,
+  getPlantDetail,
+  updatePlant,
+} from "@/src/api/plant";
+import {
+  getFileObject,
+  getFileObjectWeb,
+  getImageURL,
+} from "@/src/utils/common";
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import Feather from "@expo/vector-icons/Feather";
 import { router, Stack, useLocalSearchParams } from "expo-router";
@@ -12,7 +21,6 @@ import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Dimensions,
   Image,
   Platform,
   ScrollView,
@@ -29,14 +37,6 @@ import {
   TextInput,
 } from "react-native-paper";
 
-// 安全获取屏幕宽度，避免 SSR 问题
-const getScreenWidth = () => {
-  if (typeof window !== 'undefined') {
-    return Dimensions.get("window").width;
-  }
-  return 400; // 默认宽度，适用于 SSR
-};
-
 type PlantRecord = {
   id: number | string;
   plant: number | string;
@@ -52,11 +52,11 @@ type Plant = {
   cover: string;
   records: PlantRecord[];
   created_at: string;
+  description?: string; // 添加描述字段
 };
 
 export default function PlantDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [width, setWidth] = useState(getScreenWidth());
   const [plant, setPlant] = useState<Plant | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -74,33 +74,17 @@ export default function PlantDetailScreen() {
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [editForm, setEditForm] = useState<{
     name: string;
+    description: string;
     cover: string | null;
-  }>({ name: "", cover: null });
+  }>({ name: "", description: "", cover: null });
   const [editFormLoading, setEditFormLoading] = useState(false);
 
   // 删除记录确认弹窗相关状态
   const [deleteDialogVisible, setDeleteDialogVisible] = useState(false);
-  const [recordToDelete, setRecordToDelete] = useState<PlantRecord | null>(null);
+  const [recordToDelete, setRecordToDelete] = useState<PlantRecord | null>(
+    null
+  );
   const [deleteLoading, setDeleteLoading] = useState(false);
-
-  // 监听屏幕尺寸变化
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const subscription = Dimensions.addEventListener('change', ({ window }) => {
-        setWidth(window.width);
-      });
-      
-      return () => subscription?.remove();
-    }
-  }, []);
-
-  // 创建动态样式
-  const dynamicStyles = StyleSheet.create({
-    modalImage: {
-      width: width - 40,
-      height: "70%",
-    },
-  });
 
   const colors = useThemeColor();
   const backgroundColor = colors.background;
@@ -137,15 +121,15 @@ export default function PlantDetailScreen() {
     });
   };
 
-  const [fileNameWeb, setFileNameWeb] = useState(''); // 用于web端图片文件名
+  const [fileNameWeb, setFileNameWeb] = useState(""); // 用于web端图片文件名
   const handlePictureSelect = (uri: string, fileName?: string | null) => {
-    setFileNameWeb(fileName || '');
+    setFileNameWeb(fileName || "");
     setShowImageSelect(false);
     setRecordForm({ ...recordForm, image: uri });
   };
 
   const handleCoverPictureSelect = (uri: string, fileName?: string | null) => {
-    setFileNameWeb(fileName || '');
+    setFileNameWeb(fileName || "");
     setShowCoverImageSelect(false);
     setEditForm({ ...editForm, cover: uri });
   };
@@ -181,7 +165,11 @@ export default function PlantDetailScreen() {
     setEditFormLoading(true);
     try {
       let coverFile: File | string | null = editForm.cover;
-      if (Platform.OS === "web" && typeof coverFile === "string" && fileNameWeb) {
+      if (
+        Platform.OS === "web" &&
+        typeof coverFile === "string" &&
+        fileNameWeb
+      ) {
         coverFile = await getFileObjectWeb(coverFile, fileNameWeb);
       } else if (Platform.OS !== "web" && typeof coverFile === "string") {
         coverFile = getFileObject(coverFile);
@@ -190,12 +178,17 @@ export default function PlantDetailScreen() {
       console.log("editForm, coverFile-->", editForm, coverFile);
       await updatePlant(id!, {
         name: editForm.name,
+        description: editForm.description,
         cover: coverFile,
       });
       await fetchPlantDetail();
       setEditDialogVisible(false);
     } catch (err) {
       console.error("err-->", err);
+      track({
+        event: "edit_plant",
+        detail: `Failed to edit plant with ID ${id}`,
+      });
       Alert.alert("编辑失败");
     } finally {
       setEditFormLoading(false);
@@ -211,7 +204,7 @@ export default function PlantDetailScreen() {
   // 确认删除记录
   const handleDeleteRecord = async () => {
     if (!recordToDelete) return;
-    
+
     setDeleteLoading(true);
     try {
       await deletePlantRecord(recordToDelete.id.toString());
@@ -306,6 +299,7 @@ export default function PlantDetailScreen() {
           />
           <View style={styles.plantInfo}>
             <ThemedText style={styles.plantName}>{plant.name}</ThemedText>
+            <ThemedText>描述: {plant.description || "暂无描述"}</ThemedText>
             <ThemedText style={styles.createTime}>
               创建时间: {formatDate(plant.created_at)}
             </ThemedText>
@@ -414,7 +408,11 @@ export default function PlantDetailScreen() {
                 <AntDesign name="edit" size={size} color={color} />
               ),
               onPress: () => {
-                setEditForm({ name: plant.name, cover: plant.cover });
+                setEditForm({
+                  name: plant.name,
+                  description: plant.description || "",
+                  cover: plant.cover,
+                });
                 setEditDialogVisible(true);
               },
             },
@@ -430,7 +428,7 @@ export default function PlantDetailScreen() {
           <Dialog.Content>
             <Text>请输入记录备注和记录图片：</Text>
             <View style={{ marginTop: 12 }}>
-              <ThemedText>植物封面</ThemedText>
+              <ThemedText>植物现阶段图片</ThemedText>
               <Button
                 style={{ marginBottom: 12 }}
                 mode="outlined"
@@ -489,6 +487,22 @@ export default function PlantDetailScreen() {
                 }}
                 placeholder="请输入名称"
               />
+              <Text>描述</Text>
+              <TextInput
+                value={editForm.description}
+                onChangeText={(text) =>
+                  setEditForm((f) => ({ ...f, description: text }))
+                }
+                multiline
+                numberOfLines={3}
+                style={{
+                  borderBottomWidth: 1,
+                  borderColor: "#ccc",
+                  marginTop: 6,
+                  marginBottom: 12,
+                }}
+                placeholder="请输入描述"
+              />
               <ThemedText>重选植物封面</ThemedText>
               <Button
                 style={{ marginVertical: 6 }}
@@ -496,7 +510,9 @@ export default function PlantDetailScreen() {
                 onPress={() => setShowCoverImageSelect(true)}
               >
                 <Image
-                  source={{ uri: editForm.cover ? editForm.cover : plant.cover }}
+                  source={{
+                    uri: editForm.cover ? editForm.cover : plant.cover,
+                  }}
                   style={styles.recordImage}
                   resizeMode="cover"
                 />
@@ -524,7 +540,7 @@ export default function PlantDetailScreen() {
           <Dialog.Content>
             <Text>确定要删除这条成长记录吗？此操作无法撤销。</Text>
             {recordToDelete && (
-              <View style={{ marginTop: 12, alignItems: 'center' }}>
+              <View style={{ marginTop: 12, alignItems: "center" }}>
                 <Image
                   source={{ uri: getImageURL(recordToDelete.image) }}
                   style={[styles.recordImage, { marginBottom: 8 }]}
@@ -534,7 +550,9 @@ export default function PlantDetailScreen() {
                   {formatDate(recordToDelete.record_time)}
                 </Text>
                 {recordToDelete.remark && (
-                  <Text style={{ fontSize: 14, marginTop: 4, textAlign: 'center' }}>
+                  <Text
+                    style={{ fontSize: 14, marginTop: 4, textAlign: "center" }}
+                  >
                     {recordToDelete.remark}
                   </Text>
                 )}
@@ -665,7 +683,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     elevation: 2,
-    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+    boxShadow: "0 2px 6px rgba(0, 0, 0, 0.1)",
   },
   recordImage: {
     width: 60,
