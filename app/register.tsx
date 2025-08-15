@@ -37,7 +37,7 @@ export default function Resgister() {
         setIsSendingCode(false);
         setCountdown(0);
       }
-    } catch (err) {
+    } catch {
       showToast({ title: "验证码发送失败", action: "error" });
       setIsSendingCode(false);
       setCountdown(0);

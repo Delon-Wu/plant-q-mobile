@@ -55,6 +55,7 @@ interface ErrorResponse {
 // 响应拦截器（可选）
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    console.log('API Response Success:', response.config.url, response.status);
     return response;
   },
   async (error) => {
@@ -62,7 +63,16 @@ apiClient.interceptors.response.use(
     if (error.toJSON) {
       console.error('Axios Error JSON:', error.toJSON());
     }
-    debugger;
+    
+    // 网络连接错误的特殊处理
+    if (error.code === 'NETWORK_ERROR' || error.message === 'Network Error') {
+      console.error('Network connection failed. Check if the server is running and accessible.');
+      return Promise.reject({
+        code: -1,
+        message: '网络连接失败，请检查网络设置或服务器状态',
+        data: null
+      });
+    }
     if (error.status === 401 && !error.config._retry) {
       if (error.config?.url !== WhiteList.refresh) {
         error.config._retry = true;

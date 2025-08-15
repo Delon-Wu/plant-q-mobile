@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "plant-q",
+    "name": "Plant Q",
     "extra": {
       "eas": {
         "projectId": "0e3b4e14-1dd7-4573-b5f1-df9cbe55d61f"
@@ -12,14 +12,13 @@
     "icon": "./assets/images/icon.png",
     "scheme": "plantqmobile",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#00696a"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.delon2025.plantqmobile",
@@ -28,7 +27,8 @@
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_NETWORK_STATE"
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE"
       ],
       "usesCleartextTraffic": true,
       "versionCode": 1,
