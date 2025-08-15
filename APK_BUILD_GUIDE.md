@@ -45,24 +45,32 @@ eas build --profile apk --platform android
    eas login
    ```
 
-3. **构建 APK**：
+3. **配置生产环境**：
+   在构建之前，请确保 `.env.production` 文件中的服务器地址已正确配置为你的实际生产服务器地址，而不是 localhost。
+
+4. **构建 APK**：
    ```bash
-   # 推荐使用 preview 配置构建 APK
+   # 推荐使用 preview 配置构建 APK（现已配置生产环境变量）
    eas build --profile preview --platform android
    
    # 或者使用专用的 apk 配置
    eas build --profile apk --platform android
    ```
 
-4. **下载 APK**：
+5. **下载 APK**：
    构建完成后，EAS 会提供下载链接，您可以直接下载 APK 文件到本地。
 
 ## 注意事项
 
 - 首次构建可能需要较长时间（20-30分钟）
 - 确保网络连接稳定
+- **重要：打包前必须在 `.env.production` 中配置正确的生产服务器地址**
 - APK 文件可以直接安装到 Android 设备上进行测试
 - 如果需要上传到 Google Play Store，建议使用 AAB 格式（移除 `"buildType": "apk"` 配置）
+- 如果APK仍然无法访问网络，请检查：
+  1. 生产服务器是否正常运行
+  2. 服务器是否支持HTTPS（推荐）
+  3. 网络权限配置是否正确
 
 ## 本地构建（可选）
 

@@ -7,8 +7,12 @@ interface SettingsState {
 }
 
 const initialState: SettingsState = {
-  host: process.env.NODE_ENV === 'development' && Platform.OS !== "web" ? process.env.EXPO_PUBLIC_PROXY_HOST ?? '' : '',
-  baseURL: process.env.NODE_ENV === 'development' && Platform.OS !== "web" ? (process.env.EXPO_PUBLIC_PROXY_HOST ?? '') + '/api' : (process.env.EXPO_PUBLIC_API_BASE_URL ?? ''),
+  host: process.env.NODE_ENV === 'development' && Platform.OS !== "web" 
+    ? process.env.EXPO_PUBLIC_PROXY_HOST ?? '' 
+    : process.env.EXPO_PUBLIC_HOST ?? '',
+  baseURL: process.env.NODE_ENV === 'development' && Platform.OS !== "web" 
+    ? (process.env.EXPO_PUBLIC_PROXY_HOST ?? '') + '/api' 
+    : (process.env.EXPO_PUBLIC_API_BASE_URL ?? ''),
 };
 
 const settingsSlice = createSlice({

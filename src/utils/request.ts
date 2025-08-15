@@ -27,9 +27,9 @@ const whiteList = Object.values(WhiteList);
 // 请求拦截器（可选）
 apiClient.interceptors.request.use(
   (config: any) => {
-    const host = store.getState().settings.host;
-    if (host) {
-      config.baseURL = host + '/api';
+    const baseURL = store.getState().settings.baseURL;
+    if (baseURL) {
+      config.baseURL = baseURL;
     }
     if (whiteList.includes(config.url ?? '')) {
       return config;
