@@ -223,8 +223,8 @@ export default function Login() {
           登录
         </Button>
 
-        <Button mode="outlined" onPress={handleRegister} style={styles.button}>
-          注册
+        <Button mode="text" onPress={handleRegister} style={styles.button}>
+          还没有账号？注册
         </Button>
 
         <Button
