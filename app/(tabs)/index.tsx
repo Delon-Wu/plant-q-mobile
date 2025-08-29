@@ -389,7 +389,7 @@ export default function HomeScreen() {
                       {getTaskTypeLabel(task.task_type)} -{" "}
                       {plantList.find(
                         (plant) => plant.id.toString() === task.plant
-                      )?.name || "植物已删除"}
+                      )?.name || "无目标植物"}
                     </Text>
                     <View>
                       <Text style={styles[task.duration_type as DurationType]}>

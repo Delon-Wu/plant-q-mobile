@@ -224,7 +224,7 @@ export default function Login() {
         </Button>
 
         <Button mode="text" onPress={handleRegister} style={styles.button}>
-          还没有账号？注册
+          还没有账号？注册一个
         </Button>
 
         <Button
