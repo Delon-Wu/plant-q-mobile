@@ -3,7 +3,6 @@ import ThemedScrollView from "@/components/ThemedScrollView";
 import ThemedText from "@/components/ThemedText";
 import WeatherSvg from "@/components/WeatherSvg";
 import { useThemeColor } from "@/hooks/useTheme";
-import { useUserLocation } from "@/hooks/useUserLocation";
 import {
   createPlant,
   deletePlant,
@@ -12,7 +11,6 @@ import {
 import { deleteTask, getTaskList } from "@/src/api/task";
 import { getCurrentWeather, getFutureWeather } from "@/src/api/weather";
 import { TASK_TYPES } from "@/src/constants/task";
-import { RootState } from "@/src/store";
 import { DurationType } from "@/src/types/task";
 import {
   choosePhoto,
@@ -24,6 +22,7 @@ import {
 } from "@/src/utils/common";
 import { getNextTaskDate } from "@/src/utils/task";
 import { Ionicons } from "@expo/vector-icons";
+import * as Location from "expo-location";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -42,7 +41,6 @@ import {
   Text,
   TextInput,
 } from "react-native-paper";
-import { useSelector } from "react-redux";
 import HumiditySvg from "../../assets/images/humidity.svg";
 import TemperatureSvg from "../../assets/images/temperature.svg";
 import WindLevelSvg from "../../assets/images/windLevel.svg";
@@ -56,8 +54,6 @@ export default function HomeScreen() {
   const [threeDaysWeather, setThreeDaysWeather] = useState<any>(null);
   const [currentWeather, setCurrentWeather] = useState<any>(null);
   const [weatherLocation, setWeatherLocation] = useState<any>(null);
-  const { location } = useUserLocation();
-  const userInfo = useSelector((state: RootState) => state.user);
   const [advices, setAdvices] = useState<string[]>([]);
   // 植物相关
   const [plantDialogVisible, setPlantDialogVisible] = useState(false);
@@ -145,25 +141,30 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
-    console.log("location-->", location);
-    if (location) {
-      getWeatherData(
-        `${location.coords.latitude}:${location.coords.longitude}`
-      );
-    } else if (userInfo.position?.latitude && userInfo.position.longitude) {
-      getWeatherData(
-        `${userInfo.position.latitude}:${userInfo.position.longitude}`
-      );
-    } else if (process.env.NODE_ENV === "development") {
-      // 开发环境使用默认位置
-      getWeatherData("深圳");
-    }
-  }, [
-    location,
-    userInfo.position?.latitude,
-    userInfo.position?.longitude,
-    getWeatherData,
-  ]);
+    // 获取并缓存用户位置
+    (async () => {
+      try {
+        let { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== "granted") return;
+        let loc = await Location.getCurrentPositionAsync({});
+        if (loc?.coords) {
+          const latitude = loc.coords.latitude;
+          const longitude = loc.coords.longitude;
+          getWeatherData(`${latitude}:${longitude}`);
+        } else if (process.env.NODE_ENV === "development") {
+          // 开发环境使用默认位置
+          getWeatherData("深圳");
+        }
+      } catch (e) {
+        // 可选：处理异常
+        console.error("get location error-->", e);
+        if (process.env.NODE_ENV === "development") {
+          // 开发环境使用默认位置
+          getWeatherData("深圳");
+        }
+      }
+    })();
+  }, [getWeatherData]);
 
   // 获取任务类型label
   const getTaskTypeLabel = (type: string) => {
