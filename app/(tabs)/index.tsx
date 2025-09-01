@@ -296,7 +296,6 @@ export default function HomeScreen() {
   return (
     <>
       <ThemedScrollView>
-        {/* TODO: 结合最近天气显示对应养护提示 */}
         {/* TODO: 升级当前天气信息API之后，使用更准确的天气信息，避免使用天气预报的天气数据 */}
         <Card style={{ backgroundColor: colors.primary, minHeight: 200 }}>
           <Card.Content>
@@ -393,7 +392,6 @@ export default function HomeScreen() {
           </Card.Content>
         </Card>
 
-        {/* TODO: 没有任务时显示占位图 */}
         <ThemedText type="subtitle">进行中的任务</ThemedText>
         <ScrollView
           style={{ paddingHorizontal: 5 }}
