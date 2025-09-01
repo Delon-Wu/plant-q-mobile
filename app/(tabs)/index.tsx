@@ -124,7 +124,10 @@ export default function HomeScreen() {
           return true;
         }
       };
-      const backHandlerSubscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      const backHandlerSubscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress
+      );
       return () => {
         backHandlerSubscription.remove();
       };
@@ -167,6 +170,7 @@ export default function HomeScreen() {
   );
 
   useEffect(() => {
+    refresh();
     // 获取并缓存用户位置
     (async () => {
       try {
@@ -190,7 +194,7 @@ export default function HomeScreen() {
         }
       }
     })();
-  }, [getWeatherData]);
+  }, [refresh, getWeatherData]);
 
   // 获取任务类型label
   const getTaskTypeLabel = (type: string) => {
@@ -388,7 +392,6 @@ export default function HomeScreen() {
             ) : (
               <Text style={{ color: colors.onPrimary }}>天气数据加载中...</Text>
             )}
-            
           </Card.Content>
         </Card>
 
