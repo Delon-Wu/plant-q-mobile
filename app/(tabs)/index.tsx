@@ -24,14 +24,17 @@ import { getNextTaskDate } from "@/src/utils/task";
 import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  BackHandler,
   Platform,
   ScrollView,
   StyleSheet,
+  ToastAndroid,
   TouchableOpacity,
   View,
 } from "react-native";
+
 import {
   Button,
   Card,
@@ -46,6 +49,7 @@ import TemperatureSvg from "../../assets/images/temperature.svg";
 import WindLevelSvg from "../../assets/images/windLevel.svg";
 
 export default function HomeScreen() {
+  const backPressCount = useRef(0);
   const colors = useThemeColor();
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -102,6 +106,26 @@ export default function HomeScreen() {
   useFocusEffect(
     useCallback(() => {
       refresh();
+
+      // 监听物理返回键
+      const onBackPress = () => {
+        backPressCount.current += 1;
+        if (backPressCount.current === 2) {
+          BackHandler.exitApp();
+          backPressCount.current = 0;
+          return true;
+        } else {
+          ToastAndroid.show("再按一次返回键退出应用", ToastAndroid.SHORT);
+          setTimeout(() => {
+            backPressCount.current = 0;
+          }, 2000);
+          return true;
+        }
+      };
+      const backHandlerSubscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+      return () => {
+        backHandlerSubscription.remove();
+      };
     }, [refresh])
   );
 
@@ -274,7 +298,7 @@ export default function HomeScreen() {
         {/* TODO: 升级当前天气信息API之后，使用更准确的天气信息，避免使用天气预报的天气数据 */}
         <Card style={{ backgroundColor: colors.primary, minHeight: 200 }}>
           <Card.Content>
-            {currentWeather && (
+            {currentWeather ? (
               <View style={{ marginBottom: 14 }}>
                 <WeatherSvg
                   code={currentWeather.code}
@@ -347,20 +371,23 @@ export default function HomeScreen() {
                     )}
                   </View>
                 </View>
+                <Text variant="titleMedium" style={{ color: colors.onPrimary }}>
+                  养护小贴士：
+                </Text>
+                <View style={{ flexDirection: "row", marginTop: 10 }}>
+                  <CarouseTip
+                    tips={advices}
+                    textStyle={{ color: colors.onPrimary, fontSize: 16 }}
+                    duration={8000}
+                    animationDuration={500}
+                    animationType="slideUp"
+                  />
+                </View>
               </View>
+            ) : (
+              <Text style={{ color: colors.onPrimary }}>天气数据加载中...</Text>
             )}
-            <Text variant="titleMedium" style={{ color: colors.onPrimary }}>
-              养护小贴士：
-            </Text>
-            <View style={{ flexDirection: "row", marginTop: 10 }}>
-              <CarouseTip
-                tips={advices}
-                textStyle={{ color: colors.onPrimary, fontSize: 16 }}
-                duration={8000}
-                animationDuration={500}
-                animationType="slideUp"
-              />
-            </View>
+            
           </Card.Content>
         </Card>
 
