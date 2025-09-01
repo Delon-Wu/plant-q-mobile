@@ -1,4 +1,4 @@
-import request, { ApiResponse, WhiteList } from '@/src/utils/request'
+import request, { ApiResponse, WhiteList } from '@/src/utils/request';
 
 export async function login(email: string, password: string) {
   return request.post<ApiResponse<{ access: string, refresh: string }>>(
@@ -15,7 +15,20 @@ export async function getUserInfo() {
 }
 
 export async function logout(refreshToken: string) {
-  return request.post('/accounts/logout', { refresh_token: refreshToken })
+  try {
+    const res = await request.post('/accounts/logout', { refresh_token: refreshToken });
+    // 205也视为成功
+    if (res?.status === 205 || res?.status === 200) {
+      return res;
+    }
+    throw new Error('Logout failed');
+  } catch (error: any) {
+    // axios/fetch错误时，捕获205也视为成功
+    if (error?.response?.status === 205) {
+      return error.response;
+    }
+    throw error;
+  }
 }
 
 export async function register(data: { email: string, password: string, password2: string, phone: string, username: string }) {
