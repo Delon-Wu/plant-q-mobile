@@ -28,6 +28,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
   Platform,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   ToastAndroid,
@@ -54,6 +55,7 @@ export default function HomeScreen() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [threeDaysWeather, setThreeDaysWeather] = useState<any>(null);
   const [currentWeather, setCurrentWeather] = useState<any>(null);
@@ -98,15 +100,15 @@ export default function HomeScreen() {
   };
 
   const refresh = useCallback(() => {
-    refreshTasks();
-    refreshPlantList();
+    setRefreshing(true);
+    Promise.all([refreshTasks(), refreshPlantList()]).finally(() => {
+      setRefreshing(false);
+    });
   }, []);
 
   // 使用 useFocusEffect 代替 useEffect，确保从其他页面返回时重新刷新数据
   useFocusEffect(
     useCallback(() => {
-      refresh();
-
       // 监听物理返回键
       const onBackPress = () => {
         backPressCount.current += 1;
@@ -126,7 +128,7 @@ export default function HomeScreen() {
       return () => {
         backHandlerSubscription.remove();
       };
-    }, [refresh])
+    }, [])
   );
 
   const getWeatherData = useCallback(
@@ -393,7 +395,12 @@ export default function HomeScreen() {
 
         {/* TODO: 没有任务时显示占位图 */}
         <ThemedText type="subtitle">进行中的任务</ThemedText>
-        <ScrollView style={{ paddingHorizontal: 5 }}>
+        <ScrollView
+          style={{ paddingHorizontal: 5 }}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={refresh} />
+          }
+        >
           <View style={{ flexDirection: "column" }}>
             {loading ? (
               <Text>加载中...</Text>
