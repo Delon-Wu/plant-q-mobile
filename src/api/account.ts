@@ -19,15 +19,15 @@ export async function logout(refreshToken: string) {
     const res = await request.post('/accounts/logout', { refresh_token: refreshToken });
     // 205也视为成功
     if (res?.status === 205 || res?.status === 200) {
-      return res;
+      return Promise.resolve(res);
     }
     throw new Error('Logout failed');
   } catch (error: any) {
     // axios/fetch错误时，捕获205也视为成功
     if (error?.response?.status === 205) {
-      return error.response;
+      return Promise.resolve(error.response);
     }
-    throw error;
+    throw Promise.reject(error);
   }
 }
 
