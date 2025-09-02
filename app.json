@@ -49,8 +49,7 @@
       "compileSdkVersion": 34,
       "targetSdkVersion": 34,
       "minSdkVersion": 21,
-      "allowBackup": false,
-      "networkSecurityConfig": "./network_security_config.xml"
+      "allowBackup": false
     },
     "web": {
       "bundler": "metro",
