@@ -18,7 +18,7 @@ import userReducer from './userSlice';
 const persistConfig = {
   key: 'user',
   storage: Platform.OS === "web" ? AsyncStorage : SecureStoreStorage,
-  whitelist: ['name', 'email', 'phone', 'accessToken', 'refreshToken'],
+  whitelist: ['name', 'email', 'phone', 'accessToken', 'refreshToken', 'position'],
   keyPrefix: '',
   // 增加错误处理
   serialize: true,
@@ -49,7 +49,7 @@ export const store = configureStore({
   devTools: __DEV__,
 });
 
-export const persistor = persistStore(store);
-
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+export const persistor = persistStore(store);

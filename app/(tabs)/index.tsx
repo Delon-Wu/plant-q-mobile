@@ -2,6 +2,7 @@ import CarouseTip from "@/components/CarouseTip";
 import ThemedScrollView from "@/components/ThemedScrollView";
 import ThemedText from "@/components/ThemedText";
 import WeatherSvg from "@/components/WeatherSvg";
+import { useLocationManager } from "@/hooks/useLocationManager";
 import { useThemeColor } from "@/hooks/useTheme";
 import {
   createPlant,
@@ -22,17 +23,14 @@ import {
 } from "@/src/utils/common";
 import { getNextTaskDate } from "@/src/utils/task";
 import { Ionicons } from "@expo/vector-icons";
-import * as Location from "expo-location";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BackHandler,
   Platform,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   ToastAndroid,
-  TouchableOpacity,
   View,
 } from "react-native";
 
@@ -52,6 +50,8 @@ import WindLevelSvg from "../../assets/images/windLevel.svg";
 export default function HomeScreen() {
   const backPressCount = useRef(0);
   const colors = useThemeColor();
+  const locationManager = useLocationManager();
+  const isInitialized = useRef(false); // 添加初始化标记
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [dialogVisible, setDialogVisible] = useState(false);
@@ -61,6 +61,8 @@ export default function HomeScreen() {
   const [currentWeather, setCurrentWeather] = useState<any>(null);
   const [weatherLocation, setWeatherLocation] = useState<any>(null);
   const [advices, setAdvices] = useState<string[]>([]);
+  const [weatherRefreshDialogVisible, setWeatherRefreshDialogVisible] =
+    useState(false);
   // 植物相关
   const [plantDialogVisible, setPlantDialogVisible] = useState(false);
   const [plantList, setPlantList] = useState<any[]>([]);
@@ -75,6 +77,7 @@ export default function HomeScreen() {
     useState(false);
   const [deletePlantId, setDeletePlantId] = useState<string | null>(null);
   const [plantDeleteLoading, setPlantDeleteLoading] = useState(false);
+  const [fabOpen, setFabOpen] = useState(false);
 
   const refreshTasks = () => {
     setLoading(true);
@@ -134,67 +137,77 @@ export default function HomeScreen() {
     }, [])
   );
 
-  const getWeatherData = useCallback(
-    async (location: string) => {
-      const weatherRes = await getCurrentWeather({ location });
-      const threeDaysWeatherRes = await getFutureWeather({ location });
-      setLoading(false);
-      if (weatherRes.status === 200) {
-        setCurrentWeather(weatherRes.data.results[0]?.now || null);
-        setWeatherLocation(weatherRes.data.results[0]?.location); // 获取天气城市名称
-      }
-      if (threeDaysWeatherRes.status === 200) {
-        setThreeDaysWeather(threeDaysWeatherRes.data.results[0]?.daily || null);
-        if (threeDaysWeather) {
-          const advices = generatePlantAdvice({
-            condition: threeDaysWeather[0].text,
-            temperature: currentWeather?.temperature,
-            humidity: threeDaysWeather[0]?.humidity,
-            precipitation: threeDaysWeather[0].precip,
-            wind_speed: threeDaysWeather[0].wind_speed,
-            forecast: threeDaysWeather.map((day: any) => ({
-              condition: day.text_day,
-              min_temp: day.low,
-              max_temp: day.high,
-            })),
-            date: new Date(),
-          });
-          console.log("advices-->", advices);
-          setAdvices(advices);
-        } else {
-          setAdvices(getSeasonAdvice());
+  // 获取位置并刷新天气
+  const loadWeatherData = useCallback(
+    async (forceRefresh = false) => {
+      setLoading(true);
+      try {
+        const location = await locationManager.getUserLocation(forceRefresh);
+
+        // 直接在这里获取天气数据，避免依赖循环
+        const weatherRes = await getCurrentWeather({ location });
+        const threeDaysWeatherRes = await getFutureWeather({ location });
+
+        if (weatherRes.status === 200) {
+          setCurrentWeather(weatherRes.data.results[0]?.now || null);
+          setWeatherLocation(weatherRes.data.results[0]?.location);
         }
+
+        if (threeDaysWeatherRes.status === 200) {
+          const dailyWeather =
+            threeDaysWeatherRes.data.results[0]?.daily || null;
+          setThreeDaysWeather(dailyWeather);
+
+          if (dailyWeather && weatherRes.data.results[0]?.now) {
+            const advices = generatePlantAdvice({
+              condition: dailyWeather[0].text_day,
+              temperature: Number(weatherRes.data.results[0].now.temperature),
+              humidity: Number(dailyWeather[0]?.humidity),
+              precipitation: Number(dailyWeather[0].precip),
+              wind_speed: Number(dailyWeather[0].wind_speed),
+              forecast: dailyWeather.map((day: any) => ({
+                condition: day.text_day,
+                min_temp: Number(day.low),
+                max_temp: Number(day.high),
+              })),
+              date: new Date(),
+            });
+            console.log("advices-->", advices);
+            setAdvices(advices);
+          } else {
+            setAdvices(getSeasonAdvice());
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load weather data:", error);
+        setAdvices(getSeasonAdvice());
+      } finally {
+        setLoading(false);
       }
     },
-    [threeDaysWeather, currentWeather]
+    [locationManager]
   );
 
+  // 处理天气卡片长按
+  const handleWeatherLongPress = () => {
+    setWeatherRefreshDialogVisible(true);
+  };
+
+  // 确认刷新天气
+  const handleRefreshWeather = async () => {
+    setWeatherRefreshDialogVisible(false);
+    await loadWeatherData(true); // 强制刷新位置和天气
+  };
+
   useEffect(() => {
-    refresh();
-    // 获取并缓存用户位置
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== "granted") return;
-        let loc = await Location.getCurrentPositionAsync({});
-        if (loc?.coords) {
-          const latitude = loc.coords.latitude;
-          const longitude = loc.coords.longitude;
-          getWeatherData(`${latitude}:${longitude}`);
-        } else if (process.env.NODE_ENV === "development") {
-          // 开发环境使用默认位置
-          getWeatherData("深圳");
-        }
-      } catch (e) {
-        // 可选：处理异常
-        console.error("get location error-->", e);
-        if (process.env.NODE_ENV === "development") {
-          // 开发环境使用默认位置
-          getWeatherData("深圳");
-        }
-      }
-    })();
-  }, [refresh, getWeatherData]);
+    if (!isInitialized.current) {
+      isInitialized.current = true;
+      refresh();
+      // 只在初始化时调用一次
+      loadWeatherData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 空依赖数组，只在组件挂载时执行一次
 
   // 获取任务类型label
   const getTaskTypeLabel = (type: string) => {
@@ -299,9 +312,16 @@ export default function HomeScreen() {
 
   return (
     <>
-      <ThemedScrollView>
+      <ThemedScrollView
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={refresh} />
+        }
+      >
         {/* TODO: 升级当前天气信息API之后，使用更准确的天气信息，避免使用天气预报的天气数据 */}
-        <Card style={{ backgroundColor: colors.primary, minHeight: 200 }}>
+        <Card
+          style={{ backgroundColor: colors.primary, minHeight: 200 }}
+          onLongPress={handleWeatherLongPress}
+        >
           <Card.Content>
             {currentWeather ? (
               <View style={{ marginBottom: 14 }}>
@@ -396,11 +416,8 @@ export default function HomeScreen() {
         </Card>
 
         <ThemedText type="subtitle">进行中的任务</ThemedText>
-        <ScrollView
-          style={{ paddingHorizontal: 5 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} />
-          }
+        <View
+          style={{ paddingTop: 5, paddingBottom: 24 }}
         >
           <View style={{ flexDirection: "column" }}>
             {loading ? (
@@ -485,22 +502,13 @@ export default function HomeScreen() {
             )}
           </View>
 
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              marginTop: 24,
-              marginBottom: 8,
-            }}
+          <ThemedText
+            type="subtitle"
+            style={{ marginTop: 24, marginBottom: 8 }}
           >
-            <ThemedText type="subtitle" style={{ flex: 1 }}>
-              我的植物
-            </ThemedText>
-            <TouchableOpacity onPress={() => setPlantDialogVisible(true)}>
-              <Ionicons name="add" size={18} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
+            我的植物
+          </ThemedText>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, paddingBottom: 100 }}>
             {plantList.length === 0 ? (
               <ThemedText>暂无植物</ThemedText>
             ) : (
@@ -528,12 +536,35 @@ export default function HomeScreen() {
               ))
             )}
           </View>
-        </ScrollView>
+        </View>
       </ThemedScrollView>
-      <FAB
-        icon="plus"
-        style={styles.fab}
-        onPress={() => router.push("/task/createTask" as any)}
+      <FAB.Group
+        icon="menu"
+        visible
+        open={fabOpen}
+        style={styles.fabContainer}
+        fabStyle={styles.fab}
+        actions={[
+          {
+            icon: ({ color, size }) => (
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={size}
+                color={color}
+              />
+            ),
+            label: "新建任务",
+            onPress: () => router.push("/task/createTask" as any),
+          },
+          {
+            icon: ({ color, size }) => (
+              <Ionicons name="leaf-outline" size={size} color={color} />
+            ),
+            label: "新增植物",
+            onPress: () => setPlantDialogVisible(true),
+          },
+        ]}
+        onStateChange={({ open }) => setFabOpen(open)}
       />
       <Portal>
         <Dialog
@@ -633,6 +664,22 @@ export default function HomeScreen() {
             </Button>
           </Dialog.Actions>
         </Dialog>
+        {/* 刷新天气确认弹窗 */}
+        <Dialog
+          visible={weatherRefreshDialogVisible}
+          onDismiss={() => setWeatherRefreshDialogVisible(false)}
+        >
+          <Dialog.Title>刷新天气信息</Dialog.Title>
+          <Dialog.Content>
+            <Text>是否重新获取当前位置并刷新天气信息？</Text>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setWeatherRefreshDialogVisible(false)}>
+              取消
+            </Button>
+            <Button onPress={handleRefreshWeather}>刷新</Button>
+          </Dialog.Actions>
+        </Dialog>
       </Portal>
     </>
   );
@@ -647,11 +694,15 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: -60,
   },
-  fab: {
+  fabContainer: {
     position: "absolute",
-    right: 24,
-    bottom: 32,
+    top: 0,
+    right: 0,
     zIndex: 10,
+  },
+  fab: {
+    marginRight: 24,
+    marginBottom: 64,
   },
   [DurationType.stage]: {
     color: "#9ac5e5",
