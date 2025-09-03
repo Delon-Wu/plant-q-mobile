@@ -42,6 +42,27 @@ export const useLocationManager = (): LocationManager => {
 
       console.log('开始获取位置信息...');
       
+      // 尝试获取最后已知位置作为备选方案
+      try {
+        console.log('尝试获取最后已知位置...');
+        const lastKnownPosition = await Location.getLastKnownPositionAsync({
+          maxAge: 1000000, // 接受10分钟内的位置
+          requiredAccuracy: 5000, // 精度要求放宽到5公里
+        });
+
+        if (lastKnownPosition?.coords) {
+          const { latitude, longitude } = lastKnownPosition.coords;
+          console.log('使用最后已知位置:', latitude, longitude);
+
+          // 缓存位置到 Redux store
+          dispatch(setPosition({ latitude, longitude }));
+
+          return `${latitude}:${longitude}`;
+        }
+      } catch (lastKnownError) {
+        console.warn('获取最后已知位置失败:', lastKnownError);
+      }
+
       // 设置超时机制
       const locationPromise = Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Low, // 使用平衡模式，比 Low 稍高但比 High 快
@@ -57,38 +78,17 @@ export const useLocationManager = (): LocationManager => {
       if (location?.coords) {
         const { latitude, longitude } = location.coords;
         console.log('成功获取位置:', latitude, longitude);
-        
+
         // 缓存位置到 Redux store
         dispatch(setPosition({ latitude, longitude }));
-        
+
         return `${latitude}:${longitude}`;
       } else {
         throw new Error('Unable to get location coordinates');
       }
     } catch (error) {
       console.error('获取位置失败:', error);
-      
-      // 尝试获取最后已知位置作为备选方案
-      try {
-        console.log('尝试获取最后已知位置...');
-        const lastKnownPosition = await Location.getLastKnownPositionAsync({
-          maxAge: 300000, // 接受5分钟内的位置
-          requiredAccuracy: 5000, // 精度要求放宽到5公里
-        });
-        
-        if (lastKnownPosition?.coords) {
-          const { latitude, longitude } = lastKnownPosition.coords;
-          console.log('使用最后已知位置:', latitude, longitude);
-          
-          // 缓存位置到 Redux store
-          dispatch(setPosition({ latitude, longitude }));
-          
-          return `${latitude}:${longitude}`;
-        }
-      } catch (lastKnownError) {
-        console.warn('获取最后已知位置也失败:', lastKnownError);
-      }
-      
+
       // 发生错误时的降级策略
       if (hasValidPosition()) {
         console.log('使用缓存位置');
