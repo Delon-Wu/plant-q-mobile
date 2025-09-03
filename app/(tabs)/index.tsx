@@ -2,7 +2,6 @@ import CarouseTip from "@/components/CarouseTip";
 import ThemedScrollView from "@/components/ThemedScrollView";
 import ThemedText from "@/components/ThemedText";
 import WeatherSvg from "@/components/WeatherSvg";
-import { useLocationManager } from "@/hooks/useLocationManager";
 import { useThemeColor } from "@/hooks/useTheme";
 import {
   createPlant,
@@ -50,7 +49,6 @@ import WindLevelSvg from "../../assets/images/windLevel.svg";
 export default function HomeScreen() {
   const backPressCount = useRef(0);
   const colors = useThemeColor();
-  const locationManager = useLocationManager();
   const isInitialized = useRef(false); // 添加初始化标记
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -137,56 +135,61 @@ export default function HomeScreen() {
     }, [])
   );
 
-  // 获取位置并刷新天气
-  const loadWeatherData = useCallback(
-    async (forceRefresh = false) => {
-      setLoading(true);
-      try {
-        const location = await locationManager.getUserLocation(forceRefresh);
+  // 使用高德IP定位获取城市名
+  const getCityByIP = async () => {
+    try {
+      const key = "你的高德Key"; // TODO: 请替换为你的高德Key
+      const res = await fetch(`https://restapi.amap.com/v3/ip?key=${key}`);
+      const data = await res.json();
+      return data.city || "深圳";
+    } catch {
+      return "深圳";
+    }
+  };
 
-        // 直接在这里获取天气数据，避免依赖循环
-        const weatherRes = await getCurrentWeather({ location });
-        const threeDaysWeatherRes = await getFutureWeather({ location });
+  // 获取城市并刷新天气
+  const loadWeatherData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const city = await getCityByIP();
+      const weatherRes = await getCurrentWeather({ location: city });
+      const threeDaysWeatherRes = await getFutureWeather({ location: city });
 
-        if (weatherRes.status === 200) {
-          setCurrentWeather(weatherRes.data.results[0]?.now || null);
-          setWeatherLocation(weatherRes.data.results[0]?.location);
-        }
-
-        if (threeDaysWeatherRes.status === 200) {
-          const dailyWeather =
-            threeDaysWeatherRes.data.results[0]?.daily || null;
-          setThreeDaysWeather(dailyWeather);
-
-          if (dailyWeather && weatherRes.data.results[0]?.now) {
-            const advices = generatePlantAdvice({
-              condition: dailyWeather[0].text_day,
-              temperature: Number(weatherRes.data.results[0].now.temperature),
-              humidity: Number(dailyWeather[0]?.humidity),
-              precipitation: Number(dailyWeather[0].precip),
-              wind_speed: Number(dailyWeather[0].wind_speed),
-              forecast: dailyWeather.map((day: any) => ({
-                condition: day.text_day,
-                min_temp: Number(day.low),
-                max_temp: Number(day.high),
-              })),
-              date: new Date(),
-            });
-            console.log("advices-->", advices);
-            setAdvices(advices);
-          } else {
-            setAdvices(getSeasonAdvice());
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load weather data:", error);
-        setAdvices(getSeasonAdvice());
-      } finally {
-        setLoading(false);
+      if (weatherRes.status === 200) {
+        setCurrentWeather(weatherRes.data.results[0]?.now || null);
+        setWeatherLocation(weatherRes.data.results[0]?.location);
       }
-    },
-    [locationManager]
-  );
+
+      if (threeDaysWeatherRes.status === 200) {
+        const dailyWeather = threeDaysWeatherRes.data.results[0]?.daily || null;
+        setThreeDaysWeather(dailyWeather);
+
+        if (dailyWeather && weatherRes.data.results[0]?.now) {
+          const advices = generatePlantAdvice({
+            condition: dailyWeather[0].text_day,
+            temperature: Number(weatherRes.data.results[0].now.temperature),
+            humidity: Number(dailyWeather[0]?.humidity),
+            precipitation: Number(dailyWeather[0].precip),
+            wind_speed: Number(dailyWeather[0].wind_speed),
+            forecast: dailyWeather.map((day: any) => ({
+              condition: day.text_day,
+              min_temp: Number(day.low),
+              max_temp: Number(day.high),
+            })),
+            date: new Date(),
+          });
+          setAdvices(advices);
+        } else {
+          setAdvices(getSeasonAdvice());
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load weather data:", error);
+      setAdvices(getSeasonAdvice());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   // 处理天气卡片长按
   const handleWeatherLongPress = () => {
@@ -196,7 +199,7 @@ export default function HomeScreen() {
   // 确认刷新天气
   const handleRefreshWeather = async () => {
     setWeatherRefreshDialogVisible(false);
-    await loadWeatherData(true); // 强制刷新位置和天气
+    await loadWeatherData(); // 强制刷新位置和天气
   };
 
   useEffect(() => {
@@ -416,9 +419,7 @@ export default function HomeScreen() {
         </Card>
 
         <ThemedText type="subtitle">进行中的任务</ThemedText>
-        <View
-          style={{ paddingTop: 5, paddingBottom: 24 }}
-        >
+        <View style={{ paddingTop: 5, paddingBottom: 24 }}>
           <View style={{ flexDirection: "column" }}>
             {loading ? (
               <Text>加载中...</Text>
@@ -508,7 +509,14 @@ export default function HomeScreen() {
           >
             我的植物
           </ThemedText>
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12, paddingBottom: 100 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              flexWrap: "wrap",
+              gap: 12,
+              paddingBottom: 100,
+            }}
+          >
             {plantList.length === 0 ? (
               <ThemedText>暂无植物</ThemedText>
             ) : (
