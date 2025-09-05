@@ -29,25 +29,13 @@
       "autoIncrement": true,
       "environment": "production",
       "android": {
-        "buildType": "apk",
-        "env": {
-          "NODE_ENV": "production"
-        }
+        "buildType": "apk"
       }
     },
     "apk-release": {
       "android": {
         "buildType": "apk",
-        "gradleCommand": ":app:assembleRelease",
-        "env": {
-          "NODE_ENV": "production",
-          "EXPO_PUBLIC_HOST": "https://www.your-domain.com",
-          "EXPO_PUBLIC_API_BASE_URL": "https://your-domain.com/api",
-          "EXPO_PUBLIC_PROXY_HOST": "https://your-domain.com",
-          "EXPO_PUBLIC_SENIVERSE_UUID": "your-uuid",
-          "EXPO_PUBLIC_SENIVERSE_PRIVATE_KEY": "your-private-key",
-          "EXPO_PUBLIC_DEEPSEEK_API_KEY": "your-api-key"
-        }
+        "gradleCommand": ":app:assembleRelease"
       }
     }
   },
