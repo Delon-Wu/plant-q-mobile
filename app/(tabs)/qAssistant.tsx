@@ -173,7 +173,7 @@ const QAssistant = () => {
         body: body,
       });
       track({
-        event: "Q助手请求发送信息",
+        event: "Q助手（抢先版）请求发送信息",
         detail: content,
       });
       eventSourceRef.current = eventSource;
@@ -357,7 +357,7 @@ const QAssistant = () => {
     <ThemedView style={styles.container}>
       {/* 标题栏 */}
       <ThemedView style={[styles.header, { borderColor: colors.outline }]}>
-        <ThemedText style={styles.title}>Q助手</ThemedText>
+        <ThemedText style={styles.title}>Q助手<ThemedText style={{color: colors.surfaceVariant}}> 抢先版</ThemedText></ThemedText>
         <TouchableOpacity onPress={clearChat}>
           <Ionicons name="trash-outline" size={18} color={colors.text} />
         </TouchableOpacity>
@@ -371,11 +371,11 @@ const QAssistant = () => {
         {messages.length === 0 ? (
           <ThemedView style={styles.welcomeContainer}>
             <ThemedText style={styles.welcomeTitle}>
-              我是 Q助手，很高兴见到你！
+              我是 Q助手（抢先版），很高兴见到你！
             </ThemedText>
             <ThemedText style={styles.welcomeText}>
               {accessToken
-                ? "我可以帮你回答关于植物的问题，或者提供一些有趣的植物知识。你可以直接输入问题，或者使用下面的按钮上传图片来获取植物识别结果。"
+                ? "我可以回答关于植物的问题，或者提供一些有趣的植物知识。你可以直接输入问题，或者点击相机图标上传图片来获取植物识别结果。"
                 : "请先登录"}
             </ThemedText>
           </ThemedView>
@@ -397,7 +397,7 @@ const QAssistant = () => {
               ]}
             >
               <ThemedText style={styles.messageRole}>
-                {message.role === "user" ? "你" : "Q助手"}
+                {message.role === "user" ? "你" : "Q助手（抢先版）"}
               </ThemedText>
               {message.image && (
                 <Image
@@ -453,7 +453,7 @@ const QAssistant = () => {
             style={[styles.inputPlain, { color: colors.text }]}
             value={input}
             onChangeText={setInput}
-            placeholder="给 Q助手 发送消息"
+            placeholder="给 Q助手（抢先版）发送消息"
             placeholderTextColor="#999"
             editable={!isLoading && !!accessToken}
             multiline
