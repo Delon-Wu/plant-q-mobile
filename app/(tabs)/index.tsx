@@ -21,7 +21,7 @@ import {
   getSeasonAdvice,
 } from "@/src/utils/common";
 import { getNextTaskDate } from "@/src/utils/task";
-import { Ionicons } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -33,6 +33,7 @@ import {
   View,
 } from "react-native";
 
+import CitySelector from "@/components/CitySelector";
 import {
   Button,
   Card,
@@ -57,7 +58,7 @@ export default function HomeScreen() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [threeDaysWeather, setThreeDaysWeather] = useState<any>(null);
   const [currentWeather, setCurrentWeather] = useState<any>(null);
-  const [weatherLocation, setWeatherLocation] = useState<any>(null);
+  const [weatherLocation, setWeatherLocation] = useState<string>('');
   const [advices, setAdvices] = useState<string[]>([]);
   const [weatherRefreshDialogVisible, setWeatherRefreshDialogVisible] =
     useState(false);
@@ -76,6 +77,7 @@ export default function HomeScreen() {
   const [deletePlantId, setDeletePlantId] = useState<string | null>(null);
   const [plantDeleteLoading, setPlantDeleteLoading] = useState(false);
   const [fabOpen, setFabOpen] = useState(false);
+  const [showCitySelector, setShowCitySelector] = useState(false);
 
   const refreshTasks = () => {
     setLoading(true);
@@ -93,7 +95,6 @@ export default function HomeScreen() {
   const refreshPlantList = () => {
     // 获取植物列表
     getPlantList().then((res) => {
-      console.log("plant list res-->", res);
       if (res.status === 200) {
         setPlantList(res.data);
       }
@@ -157,7 +158,6 @@ export default function HomeScreen() {
 
       if (weatherRes.status === 200) {
         setCurrentWeather(weatherRes.data.results[0]?.now || null);
-        setWeatherLocation(weatherRes.data.results[0]?.location);
       }
 
       if (threeDaysWeatherRes.status === 200) {
@@ -321,10 +321,7 @@ export default function HomeScreen() {
         }
       >
         {/* TODO: 升级当前天气信息API之后，使用更准确的天气信息，避免使用天气预报的天气数据 */}
-        <Card
-          style={{ backgroundColor: colors.primary, minHeight: 200 }}
-          onLongPress={handleWeatherLongPress}
-        >
+        <Card style={{ backgroundColor: colors.primary, minHeight: 200 }}>
           <Card.Content>
             {currentWeather ? (
               <View style={{ marginBottom: 14 }}>
@@ -335,12 +332,16 @@ export default function HomeScreen() {
                   style={styles.weatherIcon}
                 />
                 <View style={{ marginLeft: 130 }}>
-                  <Text
-                    variant="headlineMedium"
-                    style={{ color: colors.onPrimary }}
-                  >
-                    {weatherLocation?.name}
-                  </Text>
+                  <View style={{ flexDirection: "row", alignItems: "center" }}>
+                    <Text
+                      variant="headlineMedium"
+                      style={{ color: colors.onPrimary, marginRight: 10 }}
+                    >
+                      {weatherLocation || "未知位置"}
+                    </Text>
+                    <AntDesign name="swap" size={16} color={colors.onPrimary} onPress={() => setShowCitySelector(true)} />
+                  </View>
+
                   <View
                     style={{
                       flexDirection: "row",
@@ -688,6 +689,7 @@ export default function HomeScreen() {
             <Button onPress={handleRefreshWeather}>刷新</Button>
           </Dialog.Actions>
         </Dialog>
+        <CitySelector visible={showCitySelector} onClose={() => setShowCitySelector(false)} onSelect={(data) => setWeatherLocation(data.city)} />
       </Portal>
     </>
   );

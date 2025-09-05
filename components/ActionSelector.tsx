@@ -36,7 +36,7 @@ export default function ActionSelector({ isOpen, onClose, actions }: ActionSelec
           <ActionsheetItem
             key={action.label}
             onPress={action.onPress || onClose}
-            isDisabled={action.isDisabled}
+            isDisabled={action.isDisabled ?? false}
           >
             <ActionsheetIcon className="stroke-background-700" as={action.icon} {...action.iconProps}/>
             <ActionsheetItemText>{action.label}</ActionsheetItemText>
